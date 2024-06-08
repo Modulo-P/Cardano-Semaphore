@@ -1,0 +1,24 @@
+name = "modulo-p/cardano-semaphore"
+version = "0.0.0"
+license = "Apache-2.0"
+description = "Aiken contracts for project 'modulo-p/cardano-semaphore'"
+
+[repository]
+user = "modulo-p"
+project = "cardano-semaphore"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "1.8.0"
+source = "github"
+
+[[dependencies]]
+name = "modulo-p/settled-pimt"
+version = "main"
+source = "github"
+
+[[dependencies]]
+name = "modulo-p/ak-381"
+version = "v0.1"
+source = "github"
