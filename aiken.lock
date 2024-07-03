@@ -35,4 +35,4 @@ requirements = []
 source = "github"
 
 [etags]
-"modulo-p/settled-pimt@main" = [{ secs_since_epoch = 1717806695, nanos_since_epoch = 501412621 }, "9e497a9cd97f994220b30d028ba5e94d36c54ed050bf3340da33e0930e0843f6"]
+"modulo-p/settled-pimt@main" = [{ secs_since_epoch = 1720039321, nanos_since_epoch = 31862946 }, "9e497a9cd97f994220b30d028ba5e94d36c54ed050bf3340da33e0930e0843f6"]
