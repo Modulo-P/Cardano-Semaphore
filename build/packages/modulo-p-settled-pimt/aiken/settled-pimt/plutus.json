@@ -1,0 +1,125 @@
+{
+  "preamble": {
+    "title": "modulo-p/settled-pimt",
+    "description": "Aiken contracts for project 'modulo-p/settled-pimt'",
+    "version": "0.0.0",
+    "plutusVersion": "v2",
+    "compiler": {
+      "name": "Aiken",
+      "version": "v1.0.26-alpha+075668b"
+    },
+    "license": "Apache-2.0"
+  },
+  "validators": [
+    {
+      "title": "zk_pimt.zk_pimt",
+      "datum": {
+        "title": "datum",
+        "schema": {
+          "$ref": "#/definitions/zk_pimt~1Datum"
+        }
+      },
+      "redeemer": {
+        "title": "redeemer",
+        "schema": {
+          "$ref": "#/definitions/zk_pimt~1Redeemer"
+        }
+      },
+      "compiledCode": "59010901000032323232323223232232253330074a229309b2b2999802980198031baa00113232533300a300c002132498c94ccc020c01800454ccc02cc028dd50010a4c2c2a66601066e1d20020011533300b300a37540042930b0a99980419b874801000454ccc02cc028dd50010a4c2c2c60106ea800458c028004c01cdd50008b2999801980098021baa002132325333008300a0021324994ccc014c00cc018dd500089919191919192999807180800109924c646600200200444a6660200022930991980180198098011bae3011001163758601c002601c0046eb4c030004c030008dd7180500098039baa00116163008001300537540042c6e1d20005734aae7555cf2ab9f5742ae89",
+      "hash": "2dea4fd7a71ea990ede5ff5507294a680858d5333f7cabfc60b1ff84"
+    }
+  ],
+  "definitions": {
+    "ByteArray": {
+      "dataType": "bytes"
+    },
+    "Int": {
+      "dataType": "integer"
+    },
+    "List$ByteArray": {
+      "dataType": "list",
+      "items": {
+        "$ref": "#/definitions/ByteArray"
+      }
+    },
+    "zk_pimt/Action": {
+      "title": "Action",
+      "anyOf": [
+        {
+          "title": "Add",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "Remove",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        },
+        {
+          "title": "Check",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        }
+      ]
+    },
+    "zk_pimt/Datum": {
+      "title": "Datum",
+      "anyOf": [
+        {
+          "title": "Datum",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "merkle_tree_data",
+              "$ref": "#/definitions/zk_pimt~1merkle_tree~1MerkleTreeData"
+            }
+          ]
+        }
+      ]
+    },
+    "zk_pimt/Redeemer": {
+      "title": "Redeemer",
+      "anyOf": [
+        {
+          "title": "Redeemer",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "action",
+              "$ref": "#/definitions/zk_pimt~1Action"
+            }
+          ]
+        }
+      ]
+    },
+    "zk_pimt/merkle_tree/MerkleTreeData": {
+      "title": "MerkleTreeData",
+      "anyOf": [
+        {
+          "title": "MerkleTreeData",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "root",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "max_depth",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "last_subtree",
+              "$ref": "#/definitions/List$ByteArray"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
