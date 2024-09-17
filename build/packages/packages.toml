@@ -1,14 +1,14 @@
 [[packages]]
 name = "aiken-lang/stdlib"
-version = "1.8.0"
-source = "github"
-
-[[packages]]
-name = "modulo-p/settled-pimt"
-version = "main"
+version = "2.1.0"
 source = "github"
 
 [[packages]]
 name = "modulo-p/ak-381"
 version = "v0.1"
+source = "github"
+
+[[packages]]
+name = "aiken-lang/merkle-patricia-forestry"
+version = "v2.0.0"
 source = "github"
