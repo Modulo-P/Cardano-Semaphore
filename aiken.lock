@@ -8,7 +8,7 @@ source = "github"
 
 [[requirements]]
 name = "modulo-p/ak-381"
-version = "v0.1"
+version = "v0.1.1"
 source = "github"
 
 [[requirements]]
@@ -24,7 +24,7 @@ source = "github"
 
 [[packages]]
 name = "modulo-p/ak-381"
-version = "v0.1"
+version = "v0.1.1"
 requirements = []
 source = "github"
 

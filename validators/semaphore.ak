@@ -3,14 +3,15 @@ use aiken/collection/list
 use cardano/address.{Script}
 use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
-//use ak_381/groth16.{groth_verify, Proof, SnarkVerificationKey}
+use ak_381/groth16.{groth_verify, Proof, SnarkVerificationKey}
 
 
 pub type Redeemer {
     Create
     Modify
-    Signal
+    Signal(Proof)
 }
+
 
 pub type SemaphoreDatum {
     group_merke_root: ByteArray,
@@ -82,9 +83,9 @@ validator semaphore(oref: OutputReference) {
 
             }
 
-            Signal -> {
+            Signal(zk_proof) -> {
                 let Transaction { inputs, outputs, .. } = self      
-                expect Some(dat) = datum         
+                expect Some(dat) = datum
 
                 // Find script input
                 expect Some(this_script_input) = find_input(inputs, utxo)
@@ -106,10 +107,13 @@ validator semaphore(oref: OutputReference) {
                 }
 
                 // Condition 2: Is Snark Verification Keys reference input correct?
-                expect Some(_snark_vkey_input) = find_input(inputs, dat.vkey_ref_input)
+                expect Some(snark_vkey_ref_input) = find_input(inputs, dat.vkey_ref_input)
+                expect InlineDatum(snark_vkey_input) = snark_vkey_ref_input.output.datum
+                expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
                 // Cond 3: Verify ZK proof
-                let is_snark_correct: Bool = True
+                // [1] Is a dummy value to make it compile. Fix it!!
+                let is_snark_correct: Bool = groth_verify(snark_vkey, zk_proof, [1])
 
                 and {
                     is_value_returned,
