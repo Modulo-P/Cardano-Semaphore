@@ -1,19 +1,18 @@
-use aiken/dict
-//use aiken/hash.{sha3_256}
-use aiken/list
-use aiken/transaction.{OutputReference, ScriptContext, Transaction, Input, find_input, Mint, Spend, InlineDatum}
-use aiken/transaction/credential.{ScriptCredential}
-use aiken/transaction/value.{without_lovelace}
+use aiken/collection/dict as dict
+use aiken/collection/list
+use cardano/address.{Script}
+use cardano/assets.{PolicyId} as assets
+use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
 //use ak_381/groth16.{groth_verify, Proof, SnarkVerificationKey}
-//use settled_pimt/merke_tree
 
-type Redeemer {
+
+pub type Redeemer {
     Create
     Modify
     Signal
 }
 
-type SemaphoreDatum {
+pub type SemaphoreDatum {
     group_merke_root: ByteArray,
     tree_depth: Int, 
     admin_pkh: ByteArray,
@@ -21,14 +20,12 @@ type SemaphoreDatum {
     vkey_ref_input: OutputReference,
 }
 
-validator(oref: OutputReference) {
-    fn mint (rdm: Redeemer, ctx: ScriptContext) -> Bool {
+validator semaphore(oref: OutputReference) {
+    mint (rdm: Redeemer, policy_id: PolicyId, self: Transaction) -> Bool {
         when rdm is {
             
-            Create -> {
-                let ScriptContext { transaction, purpose } = ctx 
-                let Transaction { inputs, outputs, mint,.. } = transaction
-                expect Mint(script_policy_id) = purpose
+            Create -> { 
+                let Transaction { inputs, outputs, mint,.. } = self
 
                 // Condition 0: Is expected UTxO spent?
 
@@ -36,17 +33,16 @@ validator(oref: OutputReference) {
                 
                 // Condition 1: Is only one Group NFT minted?
 
-                expect [(_asset_name, amount)] =
+                expect [Pair(_asset_name, amount)] =
                     mint
-                    |> value.from_minted_value
-                    |> value.tokens(script_policy_id)
-                    |> dict.to_list()
+                    |> assets.tokens(policy_id)
+                    |> dict.to_pairs()
                 
                 let is_one_token_minted: Bool = amount == 1
 
                 // Condition 2: Is Group NFT sent to script?
 
-                let own_script_credential = ScriptCredential(script_policy_id)
+                let own_script_credential = Script(policy_id)
 
                 expect [_output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
 
@@ -58,27 +54,26 @@ validator(oref: OutputReference) {
         }
     }
 
-    fn spend(dat: SemaphoreDatum, rdm: Redeemer, ctx: ScriptContext) -> Bool {
-    
+    spend(datum: Option<SemaphoreDatum>, rdm: Redeemer, utxo: OutputReference, self: Transaction) -> Bool {
         when rdm is {
             Modify -> {
-                let Transaction { outputs, extra_signatories, .. } = ctx.transaction
+                let Transaction { inputs, outputs, extra_signatories, .. } = self
+                expect Some(dat) = datum
 
                 // Condition 0: Is Tx signed by admin?
-
                 let is_signed_by_admin: Bool = list.has(extra_signatories, dat.admin_pkh)
 
                 // Find script address and value
 
-                let this_script_input = find_own_input(ctx)
+                expect Some(this_script_input) = find_input(inputs, utxo)
                 let this_script_address = this_script_input.output.address
-                let this_script_value =  this_script_input.output.value |> without_lovelace()
+                let this_script_value =  this_script_input.output.value |> assets.without_lovelace()
                 
 
                 // Condition 1: Is script value sent back?
 
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address == this_script_address })
-                let is_value_returned: Bool = without_lovelace(output_to_script.value) == this_script_value
+                let is_value_returned: Bool = assets.without_lovelace(output_to_script.value) == this_script_value
 
                 and {
                     is_signed_by_admin,
@@ -88,16 +83,17 @@ validator(oref: OutputReference) {
             }
 
             Signal -> {
-                let Transaction { inputs, outputs, .. } = ctx.transaction                
+                let Transaction { inputs, outputs, .. } = self      
+                expect Some(dat) = datum         
 
                 // Find script input
-                let this_script_input = find_own_input(ctx)
+                expect Some(this_script_input) = find_input(inputs, utxo)
      
                 // Find output sent back to script
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address == this_script_input.output.address })
                 
                 // Condition 0: Is script value sent back?
-                let is_value_returned: Bool = without_lovelace(output_to_script.value) == without_lovelace(this_script_input.output.value) 
+                let is_value_returned: Bool = assets.without_lovelace(output_to_script.value) == assets.without_lovelace(this_script_input.output.value) 
 
                 // Condition 1: Is Datum preserved?
                 expect InlineDatum(out_data) = output_to_script.datum
@@ -129,11 +125,3 @@ validator(oref: OutputReference) {
 
 }
 
-pub fn find_own_input(ctx: ScriptContext) -> Input {
-  expect Spend(output_ref) = ctx.purpose
-
-  expect Some(input) =
-    ctx.transaction.inputs
-      |> transaction.find_input(output_ref)
-  input
-}

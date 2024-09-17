@@ -3,28 +3,22 @@
 
 [[requirements]]
 name = "aiken-lang/stdlib"
-version = "1.8.0"
-source = "github"
-
-[[requirements]]
-name = "modulo-p/settled-pimt"
-version = "main"
+version = "2.1.0"
 source = "github"
 
 [[requirements]]
 name = "modulo-p/ak-381"
 version = "v0.1"
+source = "github"
+
+[[requirements]]
+name = "aiken-lang/merkle-patricia-forestry"
+version = "v2.0.0"
 source = "github"
 
 [[packages]]
 name = "aiken-lang/stdlib"
-version = "1.8.0"
-requirements = []
-source = "github"
-
-[[packages]]
-name = "modulo-p/settled-pimt"
-version = "main"
+version = "2.1.0"
 requirements = []
 source = "github"
 
@@ -34,5 +28,10 @@ version = "v0.1"
 requirements = []
 source = "github"
 
+[[packages]]
+name = "aiken-lang/merkle-patricia-forestry"
+version = "v2.0.0"
+requirements = []
+source = "github"
+
 [etags]
-"modulo-p/settled-pimt@main" = [{ secs_since_epoch = 1721087676, nanos_since_epoch = 150640532 }, "caadf4a65a699b25a1e50faac06e9817e589e905f02302d78f72a2ccd6970123"]
