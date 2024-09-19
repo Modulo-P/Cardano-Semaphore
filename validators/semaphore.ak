@@ -3,21 +3,21 @@ use aiken/collection/list
 use cardano/address.{Script}
 use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
-use ak_381/groth16.{groth_verify, Proof, SnarkVerificationKey}
+use ak_381/groth16.{groth_verify, SnarkVerificationKey} as groth16
+use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 
 
 pub type Redeemer {
     Create
     Modify
-    Signal(Proof)
+    Signal(groth16.Proof, mpf.Proof, (ByteArray, ByteArray))
 }
-
 
 pub type SemaphoreDatum {
     group_merke_root: ByteArray,
     tree_depth: Int, 
     admin_pkh: ByteArray,
-    nullifier_merkle_root: ByteArray,
+    nullifier_mpf_root: ByteArray,
     vkey_ref_input: OutputReference,
 }
 
@@ -83,7 +83,7 @@ validator semaphore(oref: OutputReference) {
 
             }
 
-            Signal(zk_proof) -> {
+            Signal(zk_proof, mpf_proof, (key, value)) -> {
                 let Transaction { inputs, outputs, .. } = self      
                 expect Some(dat) = datum
 
@@ -115,17 +115,21 @@ validator semaphore(oref: OutputReference) {
                 // [1] Is a dummy value to make it compile. Fix it!!
                 let is_snark_correct: Bool = groth_verify(snark_vkey, zk_proof, [1])
 
+                // Cond 4: Is the Nullifier already inserted.
+                let nullifier_mpf: MerklePatriciaForestry = mpf.from_root(dat.nullifier_mpf_root)
+                let new_mpf_nullifier: MerklePatriciaForestry = mpf.insert(nullifier_mpf, key, value, mpf_proof)
+                let is_new_nullifier_root: Bool = mpf.from_root(out_datum.nullifier_mpf_root) == new_mpf_nullifier
+
                 and {
                     is_value_returned,
                     is_datum_preserved,
                     is_snark_correct,
+                    is_new_nullifier_root,
                 }
-
             }
 
             _ -> False
         }
     }
-
 }
 
