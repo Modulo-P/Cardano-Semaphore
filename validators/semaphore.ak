@@ -7,6 +7,8 @@ use cardano/transaction.{OutputReference, Transaction, Input, find_input, Inline
 use ak_381/groth16.{groth_verify, SnarkVerificationKey} as groth16
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 
+pub const null_hash =
+  #"0000000000000000000000000000000000000000000000000000000000000000"
 
 pub type Redeemer {
     Create
@@ -46,9 +48,16 @@ validator semaphore(oref: OutputReference) {
 
                 let own_script_credential = Script(policy_id)
 
-                expect [_output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
+                expect [output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
 
-                is_one_token_minted
+                // Condition 3: Is there a Semaphore Datum atttached?
+                expect InlineDatum(out_datum) = output_to_script.datum
+                expect out_semaphore_dat: SemaphoreDatum = out_datum
+
+                // Condition 4: Is initial MPF root an empty tree
+                let is_nullifier_root_empty: Bool = out_semaphore_dat.nullifier_mpf_root == null_hash
+
+                is_one_token_minted && is_nullifier_root_empty
 
             }
 
@@ -76,6 +85,12 @@ validator semaphore(oref: OutputReference) {
 
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address == this_script_address })
                 let is_value_returned: Bool = assets.without_lovelace(output_to_script.value) == this_script_value
+
+                // Define which fields of the Semaphore Datum must be preserved.
+                // Condition 2..
+
+                // FIX! Add a time or boolean condition that limits the period in which the admin can modify the group.
+                // Condition 3...
 
                 and {
                     is_signed_by_admin,
