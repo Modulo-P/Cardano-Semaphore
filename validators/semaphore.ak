@@ -1,6 +1,7 @@
 use aiken/builtin.{bytearray_to_integer}
 use aiken/collection/dict as dict
 use aiken/collection/list
+use aiken/interval.{ IntervalBound, Finite }
 use cardano/address.{Script}
 use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
@@ -22,6 +23,7 @@ pub type SemaphoreDatum {
     admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
     vkey_ref_input: OutputReference,
+    event_date: (Int, Int), // (PosixTimeStart, PosixTimeEnd)
 }
 
 validator semaphore(oref: OutputReference) {
@@ -30,6 +32,7 @@ validator semaphore(oref: OutputReference) {
             
             Create -> { 
                 let Transaction { inputs, outputs, mint,.. } = self
+                //let Transaction { inputs, outputs, mint, validity_range,.. } = self
 
                 // Condition 0: Is expected UTxO spent?
 
@@ -54,11 +57,14 @@ validator semaphore(oref: OutputReference) {
                 expect InlineDatum(out_datum) = output_to_script.datum
                 expect out_semaphore_dat: SemaphoreDatum = out_datum
 
-                // Condition 4: Is initial MPF root an empty tree
+                // Condition 4: Is initial MPF root empty?
                 let is_nullifier_root_empty: Bool = out_semaphore_dat.nullifier_mpf_root == null_hash
 
-                is_one_token_minted && is_nullifier_root_empty
+                // Condition 5: Is Event time correctly set?
+                //let (event_start, event_end) = out_semaphore_dat.event_date
+                // let is_event_time_set: Bool = event_start < event_end && is_entirely_after(validity_range, event_start)
 
+                is_one_token_minted && is_nullifier_root_empty
             }
 
             _ -> False
@@ -68,7 +74,7 @@ validator semaphore(oref: OutputReference) {
     spend(datum: Option<SemaphoreDatum>, rdm: Redeemer, utxo: OutputReference, self: Transaction) -> Bool {
         when rdm is {
             Modify -> {
-                let Transaction { inputs, outputs, extra_signatories, .. } = self
+                let Transaction { inputs, outputs, validity_range, extra_signatories, .. } = self
                 expect Some(dat) = datum
 
                 // Condition 0: Is Tx signed by admin?
@@ -87,14 +93,23 @@ validator semaphore(oref: OutputReference) {
                 let is_value_returned: Bool = assets.without_lovelace(output_to_script.value) == this_script_value
 
                 // Define which fields of the Semaphore Datum must be preserved.
-                // Condition 2..
+                 expect InlineDatum(out_data) = output_to_script.datum
+                expect out_datum: SemaphoreDatum = out_data
+                let is_datum_preserved: Bool = and {
+                    dat.event_date == out_datum.event_date, // Revalute this
+                    dat.nullifier_mpf_root == out_datum.nullifier_mpf_root,
+                }
 
-                // FIX! Add a time or boolean condition that limits the period in which the admin can modify the group.
-                // Condition 3...
+                // Condition 3: Is the modification before the event?
+                // The admin can't modify the Datum once the singaling event starts...
+                expect IntervalBound { bound_type: Finite(last_tx_time_point), is_inclusive: False } = validity_range.upper_bound
+                let is_before_event: Bool = last_tx_time_point <= dat.event_date.1st
 
                 and {
                     is_signed_by_admin,
                     is_value_returned,
+                    is_datum_preserved,
+                    is_before_event,
                 }
 
             }
@@ -121,6 +136,7 @@ validator semaphore(oref: OutputReference) {
                     dat.tree_depth == out_datum.tree_depth,
                     dat.admin_pkh == out_datum.admin_pkh,
                     dat.vkey_ref_input == out_datum.vkey_ref_input,
+                    dat.event_date == out_datum.event_date,
                 }
 
                 // Condition 2: Is Snark Verification Keys reference input correct?
