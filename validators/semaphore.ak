@@ -1,3 +1,4 @@
+use aiken/builtin.{bytearray_to_integer}
 use aiken/collection/dict as dict
 use aiken/collection/list
 use cardano/address.{Script}
@@ -91,7 +92,8 @@ validator semaphore(oref: OutputReference) {
                 expect Some(this_script_input) = find_input(inputs, utxo)
      
                 // Find output sent back to script
-                expect [output_to_script] = list.filter(outputs, fn (o) { o.address == this_script_input.output.address })
+                let this_script_address = this_script_input.output.address
+                expect [output_to_script] = list.filter(outputs, fn (o) { o.address == this_script_address})
                 
                 // Condition 0: Is script value sent back?
                 let is_value_returned: Bool = assets.without_lovelace(output_to_script.value) == assets.without_lovelace(this_script_input.output.value) 
@@ -112,8 +114,14 @@ validator semaphore(oref: OutputReference) {
                 expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
                 // Cond 3: Verify ZK proof
-                // [1] Is a dummy value to make it compile. Fix it!!
-                let is_snark_correct: Bool = groth_verify(snark_vkey, zk_proof, [1])
+                // Check that the public values order and encoding is correct! FIX!
+                expect Script(script_hash) = this_script_address.payment_credential
+                let public_values: List<Int> = [
+                    bytearray_to_integer(True, dat.group_merke_root),
+                    bytearray_to_integer(True, value),
+                    bytearray_to_integer(True, script_hash),
+                ]
+                let is_snark_correct: Bool = groth_verify(snark_vkey, zk_proof, public_values)
 
                 // Cond 4: Is the Nullifier already inserted.
                 let nullifier_mpf: MerklePatriciaForestry = mpf.from_root(dat.nullifier_mpf_root)
