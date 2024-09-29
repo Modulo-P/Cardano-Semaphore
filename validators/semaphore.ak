@@ -1,7 +1,7 @@
 use aiken/builtin.{bytearray_to_integer}
 use aiken/collection/dict as dict
 use aiken/collection/list
-use aiken/interval.{ IntervalBound, Finite }
+use aiken/interval.{ Interval }
 use cardano/address.{Script}
 use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
@@ -23,7 +23,7 @@ pub type SemaphoreDatum {
     admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
     vkey_ref_input: OutputReference,
-    event_date: (Int, Int), // (PosixTimeStart, PosixTimeEnd)
+    event_date: (Int, Int),     // (PosixTimeStart, PosixTimeEnd)
 }
 
 validator semaphore(oref: OutputReference) {
@@ -102,8 +102,10 @@ validator semaphore(oref: OutputReference) {
 
                 // Condition 3: Is the modification before the event?
                 // The admin can't modify the Datum once the singaling event starts...
-                expect IntervalBound { bound_type: Finite(last_tx_time_point), is_inclusive: False } = validity_range.upper_bound
-                let is_before_event: Bool = last_tx_time_point <= dat.event_date.1st
+                //expect IntervalBound { bound_type: Finite(last_tx_time_point), is_inclusive: _v } = validity_range.upper_bound
+                //let is_before_event: Bool = last_tx_time_point < dat.event_date.1st
+                let is_before_event: Bool = interval.is_entirely_before(validity_range, dat.event_date.1st)
+                
 
                 and {
                     is_signed_by_admin,
@@ -115,7 +117,7 @@ validator semaphore(oref: OutputReference) {
             }
 
             Signal(zk_proof, mpf_proof, (key, value)) -> {
-                let Transaction { inputs, outputs, .. } = self      
+                let Transaction { inputs, outputs, validity_range, .. } = self
                 expect Some(dat) = datum
 
                 // Find script input
@@ -159,16 +161,73 @@ validator semaphore(oref: OutputReference) {
                 let new_mpf_nullifier: MerklePatriciaForestry = mpf.insert(nullifier_mpf, key, value, mpf_proof)
                 let is_new_nullifier_root: Bool = mpf.from_root(out_datum.nullifier_mpf_root) == new_mpf_nullifier
 
+                // Condition 5: Is within event time range?
+                let is_within_time_event: Bool = is_interval_within(validity_range, dat.event_date)
+
                 and {
                     is_value_returned,
                     is_datum_preserved,
                     is_snark_correct,
                     is_new_nullifier_root,
+                    is_within_time_event,
                 }
             }
 
             _ -> False
         }
     }
+}
+
+
+fn is_interval_within(iv1: Interval<Int>,time_pair: (Int,Int)) -> Bool {
+    interval.is_entirely_after(iv1, time_pair.1st) && interval.is_entirely_before(iv1, time_pair.2nd) 
+}
+
+test iiw_1() {
+    let a = interval.between(5,10)
+    let tp = (1,20)
+    is_interval_within(a,tp)
+}
+
+test iiw_2() fail {
+    let a = interval.between(5,30)
+    let tp = (1,20)
+    is_interval_within(a,tp)
+}
+
+test iiw_3() {
+    let a = interval.between(2,19)
+    let tp = (1,20)
+    is_interval_within(a,tp)
+}
+
+test iiw_4() fail {
+    let a = interval.between(21,30)
+    let tp = (1,20)
+    is_interval_within(a,tp)
+}
+
+test iiw_5() fail {
+    let a = interval.between(15,30)
+    let tp = (1,20)
+    is_interval_within(a,tp)
+}
+
+test iiw_6() fail {
+    let a = interval.between(1,10)
+    let tp = (20,60)
+    is_interval_within(a,tp)
+}
+
+test iiw_7() fail {
+    let a = interval.between(1,30)
+    let tp = (20,60)
+    is_interval_within(a,tp)
+}
+
+test iiw_8() {
+    let a = interval.between(34,35)
+    let tp = (33,60)
+    is_interval_within(a,tp)
 }
 
