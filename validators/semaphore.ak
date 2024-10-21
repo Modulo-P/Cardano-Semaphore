@@ -172,12 +172,15 @@ validator semaphore(oref: OutputReference) {
 
                 // Condition 5: Is within event time range?
                 let is_within_time_event: Bool = is_interval_within(validity_range, dat.event_date)
+
+                // TODO: Condition 6. Is message tampered?
+                // It is important to check that digest(signal) == signal_hash, so that a relay doesn't tamper the message.
+                // But I will add this constraint as part of the voting validator.                 
                 
                 and {
                     is_value_returned,
                     is_datum_preserved,
                     is_snark_correct,
-                    trace @"H"
                     is_new_nullifier_root,
                     is_within_time_event,
                 }
