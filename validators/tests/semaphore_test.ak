@@ -1,10 +1,14 @@
-//use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 use aiken/interval.{Interval, IntervalBound, Finite }
 use cardano/transaction.{OutputReference, Transaction, Output, NoDatum, InlineDatum, Input, ValidityRange}
 use cardano/address.{Script, Address, from_verification_key}
 use cardano/assets.{Value, from_asset, from_lovelace}
-use semaphore.{Redeemer, Create, Modify, SemaphoreDatum}
+use semaphore.{Redeemer, Create, Modify, Signal, SemaphoreDatum}
 use ak_381/groth16.{SnarkVerificationKey, groth_verify, Proof} as groth16
+use aiken/crypto/bls12_381/scalar as scalar
+use aiken/crypto as crypto
+use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
+//use aiken/primitive/bytearray as bytearray
+
 
  // Params of the minting part of the script
 const initial_oref: OutputReference = OutputReference {
@@ -46,7 +50,7 @@ fn define_create_tx() -> Transaction {
         output_index: 0,
     }
     let semaphore_datum: SemaphoreDatum = SemaphoreDatum {
-        group_merke_root: #"00",
+        group_merke_root: 0,
         tree_depth: 1, 
         admin_pkh: #"aabbcc",
         nullifier_mpf_root: #"0000000000000000000000000000000000000000000000000000000000000000",
@@ -101,7 +105,7 @@ fn define_modify_tx() -> Transaction {
     // Modify datum and sent output back to address
     expect InlineDatum(datum) = prev_output.datum
     expect semaphore_datum: SemaphoreDatum = datum
-    let modified_datum = SemaphoreDatum {..semaphore_datum, group_merke_root: #"01"}
+    let modified_datum = SemaphoreDatum {..semaphore_datum, group_merke_root: 39998154356742573582406410737258136426965420396087690458856183855652868982871}
     let modified_output = Output { ..prev_output, datum: InlineDatum(modified_datum) }
     let add_output_to_tx = Transaction {..add_input_to_tx, outputs: [modified_output]}
     add_output_to_tx
@@ -139,35 +143,124 @@ const vk: SnarkVerificationKey = SnarkVerificationKey {
 }
 
 
-const pk: Proof = Proof {
-      piA: #"af665919d43a8cc9167334f9c55be0675d4772372297934f5d7ff38c19ab03b982d5e61aaf56e99461d713459541761c",
-      piB: #"9724db0d75cffd55d0658f5675dd4c4e8a9e0f04d086535f9469438a2456ee3ff4fa9a06bcf8e6ab4725992af6aac41307bd5c8292b61d5a5f51d867021d8238ecd50b4f0ca3643af40a4c63476f87c7ad4d381f174ff12689eabf61030bfbad",
-      piC: #"94d46c41055e66796e79a3c0d67cc43877a0a10a28a4b20ab35351a233ac72c0ad4da21e4983ff2449b1f8853af7e910",
+const zk_proof: Proof = Proof {
+      piA: #"98d99a7c03164d509d19c96050c8819bc494b0d37fce028fab4f2f94555567f86dd3c032f0a4333ec697c7f278778c7d",
+      piB: #"aace565bacf7a59cb0c3d6213b0d456e24ba203ca970017ef3e7a4ff2a107389923ba3537c9e96da835805a36fdd213714da13d3bf26e944e392f324ef76277c8b74158b102a1d9b1ebc5bd106edd6959366ce1fbe469f0e07a72b21480004c8",
+      piC: #"87db3006944e7ed1b1b62fa4fd285b60cc32dac42ec0b19583fa7c51c7ed0f188e1c7e1af295a71f163d2d88862ef41c",
     }
 
+
 const public_values: List<Int> = [
-    26593495781683680956254130405702393360799795146227253887984406106246073779265,
-    39998154356742573582406410737258136426965420396087690458856183855652868982871,
+    2918619243380075077683114937688957371178715648700203897594795409293125897247,
+    18357242067865281585448401029732015934400637534018503292192114001988596022544,
     1,
-    2
-  ] 
+    26752615589533105314083070294476356144393894068720636123966246677904
+  ]
 
 test snark_1 () {
-    groth_verify(vk, pk, public_values)
+    groth_verify(vk, zk_proof, public_values)
 }
 
-//const vkey_input: Input = Input {
-//    output_reference: OutputReference { transaction_id: #"0034", output_index: 0 },
-//    output: Output {
-//        address: Address { payment_credential: Script(#"0000000000000000000000000000000000000000000000000000000000000000"), stake_credential: None },
-//        value: from_lovelace(1),
-//        datum: InlineDatum(vk),
-//        reference_script: None,
-//    }
-//}
+const vkey_input: Input = Input {
+    output_reference: OutputReference { transaction_id: #"01bc", output_index: 0 },
+    output: Output {
+        address: Address { payment_credential: Script(#"0000000000000000000000000000000000000000000000000000000000000000"), stake_credential: None },
+        value: from_lovelace(1),
+        datum: InlineDatum(vk),
+        reference_script: None,
+    }
+}
 
-//fn signal_tx() -> Transaction {
-//    let prev_tx = define_modify_tx()
-//    
-//}
+
+fn signal_tx() -> Transaction {
+    let previous_tx = define_modify_tx()
+
+     // Let the output of the previous Tx be the input && Add thr vkey_input.
+    expect [prev_output] = previous_tx.outputs
+    let utxo =  Input {
+        output_reference: OutputReference { transaction_id: #"cba9", output_index: 0},
+        output: prev_output,
+    }
+
+    let add_input_to_tx = Transaction {..previous_tx, inputs: [utxo, vkey_input]}
+
+    // Define that the Group NFT has been minted in the Tx.
+    let group_token: Value = from_asset(policy_id, #"ab", 1)
+
+    // Define Output
+    let semaphore_datum: SemaphoreDatum = SemaphoreDatum {
+        group_merke_root: 2918619243380075077683114937688957371178715648700203897594795409293125897247,
+        tree_depth: 1, 
+        admin_pkh: #"aabbcc",
+        nullifier_mpf_root: #"df681c36097d72a7764c81e07096e7dcf88605ff980011cb33ef20505e5825cf",
+        vkey_ref_input: vkey_input.output_reference,
+        event_date: (20, 30)
+    }
+    let tx_outputs: List<Output> = [
+        Output {
+            address: Address { payment_credential: Script(policy_id), stake_credential: None },
+            value: group_token,
+            datum: InlineDatum(semaphore_datum),
+            reference_script: None,
+        }
+    ]
+    let add_output_to_tx: Transaction = Transaction {..add_input_to_tx, outputs: tx_outputs}
+
+    // Add validity range
+    let vr: ValidityRange = Interval
+    { lower_bound:
+        IntervalBound { bound_type: Finite(22), is_inclusive: True }
+    , upper_bound:
+        IntervalBound { bound_type: Finite(25), is_inclusive: False }
+    }
+    let add_validity_range_to_tx = Transaction {..add_output_to_tx, validity_range: vr}
+
+    add_validity_range_to_tx
+}
+
+test signal_1 () {
+    let rdm = Signal(zk_proof,[], 18357242067865281585448401029732015934400637534018503292192114001988596022544, 1 )
+
+
+   // Datum 
+   let semaphore_datum: SemaphoreDatum = SemaphoreDatum {
+        group_merke_root: 2918619243380075077683114937688957371178715648700203897594795409293125897247,
+        tree_depth: 1, 
+        admin_pkh: #"aabbcc",
+        nullifier_mpf_root: #"0000000000000000000000000000000000000000000000000000000000000000",
+        vkey_ref_input: vkey_input.output_reference,
+        event_date: (20, 30)
+    }
+
+    let oref = OutputReference { transaction_id: #"cba9", output_index: 0}
+    let tx: Transaction = signal_tx()
+    semaphore.semaphore.spend(initial_oref,Some(semaphore_datum), rdm, oref, tx)
+}
+
+// Miscelaneous tests
+
+test public_val_transformation_1() {
+    let scal = scalar.new(26593495781683680956254130405702393360799795146227253887984406106246073779265)
+
+    scalar.from_bytearray_little_endian(#"41840bc40ca2af12143754a5057bd57ee51a917d6b4b69412c098e379d62cb3a") == scal
+}
+
+test public_val_transformation_2() {
+    //let val = scalar.from_bytearray_little_endian(#"41840bc40ca2af12143754a5057bd57ee51a917d6b4b69412c098e379d62cb3a")
+
+    #"ad2c7d74f59bee802dc9a0a2bc13219b9e5d79bb4fb8da74540942fa01728ee0" == crypto.blake2b_256(#"41840bc40ca2af12143754a5057bd57ee51a917d6b4b69412c098e379d62cb3a")
+}
+
+test public_val_transformation_3() {
+
+    let nullifier = 18357242067865281585448401029732015934400637534018503292192114001988596022544
+    expect Some(n_value) = scalar.new(nullifier)
+    let nullifier_value: ByteArray =  scalar.to_bytearray_little_endian(n_value,0)
+    let nullifier_key: ByteArray = crypto.blake2b_256(nullifier_value)
+    let new_mpf_nullifier: MerklePatriciaForestry = mpf.insert(mpf.from_root(#"0000000000000000000000000000000000000000000000000000000000000000"), nullifier_key, nullifier_value, [])
+
+    new_mpf_nullifier == mpf.from_root(#"df681c36097d72a7764c81e07096e7dcf88605ff980011cb33ef20505e5825cf")
+}
+
+
 
