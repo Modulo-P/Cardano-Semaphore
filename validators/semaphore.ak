@@ -1,4 +1,4 @@
-use aiken/builtin.{bytearray_to_integer}
+//use aiken/builtin.{bytearray_to_integer}
 use aiken/collection/dict as dict
 use aiken/collection/list
 use aiken/interval.{ Interval }
@@ -7,6 +7,8 @@ use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
 use ak_381/groth16.{groth_verify, SnarkVerificationKey} as groth16
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
+use aiken/crypto/bls12_381/scalar as scalar
+use aiken/crypto as crypto
 
 pub const null_hash =
   #"0000000000000000000000000000000000000000000000000000000000000000"
@@ -14,11 +16,11 @@ pub const null_hash =
 pub type Redeemer {
     Create
     Modify
-    Signal(groth16.Proof, mpf.Proof, (ByteArray, ByteArray))
+    Signal(groth16.Proof, mpf.Proof, Int, Int)
 }
 
 pub type SemaphoreDatum {
-    group_merke_root: ByteArray,
+    group_merke_root: Int,
     tree_depth: Int, 
     admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
@@ -116,7 +118,7 @@ validator semaphore(oref: OutputReference) {
 
             }
 
-            Signal(zk_proof, mpf_proof, (key, value)) -> {
+            Signal(zk_proof, mpf_proof, nullifier, signal_hash) -> {
                 let Transaction { inputs, outputs, validity_range, .. } = self
                 expect Some(dat) = datum
 
@@ -147,27 +149,35 @@ validator semaphore(oref: OutputReference) {
                 expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
                 // Cond 3: Verify ZK proof
-                // Check that the public values order and encoding is correct! FIX!
                 expect Script(script_hash) = this_script_address.payment_credential
+                expect Some(external_nullifier) = scalar.from_bytearray_little_endian(script_hash) 
                 let public_values: List<Int> = [
-                    bytearray_to_integer(True, dat.group_merke_root),
-                    bytearray_to_integer(True, value),
-                    bytearray_to_integer(True, script_hash),
+                    dat.group_merke_root,                // Group MT root hash
+                    nullifier,                           // Nullifier  
+                    signal_hash,                         // SignalHash
+                    scalar.to_int(external_nullifier),   // External_nullifier
                 ]
+
                 let is_snark_correct: Bool = groth_verify(snark_vkey, zk_proof, public_values)
 
                 // Cond 4: Is the Nullifier already inserted.
                 let nullifier_mpf: MerklePatriciaForestry = mpf.from_root(dat.nullifier_mpf_root)
-                let new_mpf_nullifier: MerklePatriciaForestry = mpf.insert(nullifier_mpf, key, value, mpf_proof)
+
+                expect Some(n_value) = scalar.new(nullifier)
+                let nullifier_value: ByteArray =  scalar.to_bytearray_little_endian(n_value,0)
+                let nullifier_key: ByteArray = crypto.blake2b_256(nullifier_value)
+                let new_mpf_nullifier: MerklePatriciaForestry = mpf.insert(nullifier_mpf, nullifier_key, nullifier_value, mpf_proof)
+
                 let is_new_nullifier_root: Bool = mpf.from_root(out_datum.nullifier_mpf_root) == new_mpf_nullifier
 
                 // Condition 5: Is within event time range?
                 let is_within_time_event: Bool = is_interval_within(validity_range, dat.event_date)
-
+                
                 and {
                     is_value_returned,
                     is_datum_preserved,
                     is_snark_correct,
+                    trace @"H"
                     is_new_nullifier_root,
                     is_within_time_event,
                 }
@@ -178,6 +188,7 @@ validator semaphore(oref: OutputReference) {
     }
 }
 
+// Helper functions
 
 fn is_interval_within(iv1: Interval<Int>,time_pair: (Int,Int)) -> Bool {
     interval.is_entirely_after(iv1, time_pair.1st) && interval.is_entirely_before(iv1, time_pair.2nd) 
