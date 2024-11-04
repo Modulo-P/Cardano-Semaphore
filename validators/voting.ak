@@ -10,25 +10,30 @@ type Ballot = List<(Int,Int)>
 //}
 //
 //
-//validator voting() {
-//    mint(redeemer: MyMintRedeemer, policy_id: PolicyId, self: Transaction) {
-//        // Is datum set at Zero.
-//    }
-//
-//
-//
-//    spend(datum_opt: Option<MyDatum>, redeemer: MyRedeemer, input: OutputReference, self: Transaction) {
-//        expect Some(datum) = datum_opt
-//
-//        // Is the group token spent and send back again (parameter)
-//
-//        // Is minimum ADA sent back to the script
-//
-//        // 
-//        
-//  }
-//}
-//
+
+validator voting() {
+    mint(redeemer: MyMintRedeemer, policy_id: PolicyId, self: Transaction) {
+        
+        // 
+        // 
+
+
+    }
+
+
+
+    spend(datum_opt: Option<MyDatum>, redeemer: MyRedeemer, input: OutputReference, self: Transaction) {
+        expect Some(datum) = datum_opt
+
+        // Is the group token spent and send back again (parameter)
+
+        // Is minimum ADA sent back to the script
+
+        // 
+        
+  }
+}
+
 
 
 fn vote(options: Ballot, index: Int) -> Ballot {
@@ -70,7 +75,6 @@ test vote_6() {
     let ballot = [(0,8), (1,7), (2,3), (3,4)]
     vote(ballot, 3) ==  [(0,8), (1,7), (2,3), (3,5)]
 }
-
 
 
 // Are ballot options indexs different and its counters set at Zero?
