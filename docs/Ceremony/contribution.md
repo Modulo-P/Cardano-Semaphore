@@ -6,11 +6,16 @@ This document will explain how to contribute to the phase 2 of the trusted setup
 
 1. Install npm utility
 
-Before joining the ceremony you must have installed the npm javascript utility, if you haven't installed yet you can do it by following this documentation or alternativelly in the [official docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+Before joining the ceremony you must have installed the npm javascript utility, if you haven't installed yet you can do it by following this [documentation](https://github.com/Modulo-P/Cardano-Semaphore/blob/main/docs/Ceremony/install_npm.md) or alternativelly in the [official docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 
 2. Have a Github account.
 
-To contribute you must have a Github account.
+To contribute you must have a Github account. The account must have the following activity requirements:
+
+* Have 1 follower.
+* Following 5 accounts.
+* Have at least two public github repositories.
+* Be at least one month old.
 
 ### Install the phase2cli package
 
