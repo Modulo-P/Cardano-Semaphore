@@ -22,7 +22,7 @@ To contribute you must have a Github account. The account must have the followin
 In order to contribute to the ceremony you must install the following npm [package](https://www.npmjs.com/package/@modulo-p/phase2cli)
 
 ```sh
-npm install -g @modulo-p/phase2cli
+// TODO NPM INSTALL COMMAND
 ```
 
 ### Authenticate
