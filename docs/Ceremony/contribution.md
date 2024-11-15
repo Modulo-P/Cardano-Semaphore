@@ -12,8 +12,8 @@ Before joining the ceremony you must have installed the npm javascript utility, 
 
 To contribute you must have a Github account. The account must have the following activity requirements:
 
-- Have 1 follower. Let us know if you need someone whom follows you, we will help you.
-- Following 5 accounts. Don't you know who to follow?, here you have some ideas:
+- Have 1 follower. Let us know if you need someone who follows you, we will help you.
+- Following 5 accounts. Don't you know whom to follow?, here you have some ideas:
   - [Modulo-P](https://github.com/Modulo-P)
   - [AgustinBadi](https://github.com/AgustinBadi)
   - [jmagan](https://github.com/jmagan)
