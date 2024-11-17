@@ -1,0 +1,30 @@
+Final verification transcript for semaphore circuit Phase 2 contribution.
+Coordinator  (jmagan-24716625)
+
+Circuit Hash: 
+		fc05fe32 90faee66 6c48733a 1fb35d55
+		61d6bb9a 2e2de081 a27accbc 14d69722
+		e05bdbe4 6055d700 1472e4eb e1877951
+		b3719fb5 47a419da b41c5b66 99051aa4
+-------------------------
+contribution #3 jmagan-24716625:
+		24c6f893 9d94eb6a 1d670da5 f5adf362
+		7f8f0264 c7fb720c d0bf4537 89654b8e
+		691dd347 2bc6ef1d 476a0003 8d682f94
+		e885383a 318bc1de b3a6aa73 704cac03
+Beacon generator: c60b464076d4060865e08bdfcf386f05d45ec0d57799d071e92f0240f6bb91e5
+Beacon iterations Exp: 10
+-------------------------
+contribution #2 AgustinBadi-52472400:
+		5a6a3ae7 15a18196 37c706e7 493c232c
+		548ee122 530a4b66 f62b39d5 4c293c83
+		1523c620 a49f6128 0cb3bfb0 7da818b8
+		edb2f0de cea702c7 1aaff028 cf93df99
+-------------------------
+contribution #1 jmagan-24716625:
+		ec9071bc 8e091428 07cdc68e 723f3179
+		4b983450 cbd5937a 1c1c0773 3ff9da83
+		2b4e2fd1 eb7037f9 5aca782c a409a71a
+		184cddce 9110224e 0ac1083b e0785b68
+-------------------------
+ZKey Ok!
