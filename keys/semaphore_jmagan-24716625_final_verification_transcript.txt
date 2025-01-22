@@ -1,0 +1,138 @@
+Final verification transcript for semaphore circuit Phase 2 contribution.
+Coordinator  (jmagan-24716625)
+
+Circuit Hash: 
+		fc05fe32 90faee66 6c48733a 1fb35d55
+		61d6bb9a 2e2de081 a27accbc 14d69722
+		e05bdbe4 6055d700 1472e4eb e1877951
+		b3719fb5 47a419da b41c5b66 99051aa4
+-------------------------
+contribution #21 jmagan-24716625:
+		d6f56395 32477222 76b06907 e1b37a0f
+		627bc9b8 5ce99ea8 e5552611 e857c2cc
+		24c29095 77105edd e79e0b77 b585eef8
+		614dd3d4 1641d3d3 e75c25a1 0cda87bf
+Beacon generator: 87f2a1f9324c481498566154212b73153d020bcf06deba3f934a2b95bc9c298f
+Beacon iterations Exp: 10
+-------------------------
+contribution #20 byncnittyvM-780954:
+		3e6e97de 29cd3621 5beba8a1 5a4f077e
+		e7804331 bfb8cf53 d21567df 8a2c639c
+		e9f22d7f b5ab0e60 238f0e58 c208e009
+		adcc58cb 3ec6bfb6 4a8e2e54 6747c30b
+-------------------------
+contribution #19 Ydlxz-32244199:
+		b79d25ca 5e3468ec b7a5cd0d 0c7dcce0
+		689d6f12 cee2a7a5 d645cd07 f8f1ac20
+		5b9835c0 bdc03460 d534112d 8097b6d0
+		6dc5f36c b822d7d6 e2ac39fb b4d11035
+-------------------------
+contribution #18 KevinLarsson6-20071838:
+		33543322 14bc3d4f 1e5db87c 92272754
+		b07a56cd 10bbe2d1 5abe15f2 e449178c
+		673effb3 ccf85fb4 b6e95891 5dafac1a
+		b7cbff85 d192a5a4 1ff4838c 93382c7b
+-------------------------
+contribution #17 alnash-6947397:
+		c0fe179e 56ebea90 96878645 d1ba9cec
+		3c160446 c460a778 9ebdda1b 5de450b4
+		70316200 c63a100d 3983bb97 05e7520f
+		ebab5988 5f68ace8 716c4eec 77767c88
+-------------------------
+contribution #16 poganjenaTR-3408219:
+		fa42b6df 4a2c1a96 b6a9e3fa c7d289c0
+		8ffbe137 3583f528 d58e609c beca1f9b
+		f2008008 a840ac02 bbc9c4a1 f5281d56
+		a6b21201 cbc16202 3bce4364 5655b97c
+-------------------------
+contribution #15 granonasag-15106222:
+		c0207784 a2365164 d68e3b29 45284b1e
+		cbf95556 57d2e060 3ff04024 4f19045a
+		84e39755 43848956 08e770bd 637480ff
+		766e1bbb 7b9d415e 5ff3a2bc 7e2a53c5
+-------------------------
+contribution #14 sobrelacallew9-3240107:
+		00fa0960 0a61c332 b5f6dcf7 0f0443c3
+		3cb9af09 a180ca70 dfbc67fc d36872a3
+		38e30cb2 a14c1382 066fd4c4 80375ac7
+		045444ca 246cc5f8 c24abcd0 d459ea39
+-------------------------
+contribution #13 schnoomoo-121268076:
+		15397158 38c32512 ee434177 edb4eb23
+		49d615eb a3528f74 868085f7 dc8532fa
+		456a55b7 d669169c adc7db6b 4221591f
+		1e767131 20c3a684 831065c1 2fd0e210
+-------------------------
+contribution #12 GillesGaelBERNARD-44630492:
+		97c428cb f1e4da2b 5d4e65b2 eab0c275
+		fa870f75 b48e8c46 bdc4385d 8d4df3e2
+		15553419 863c1401 072042bb 212bf2d5
+		e6a00610 09a277ce 28b044e8 9abb6e34
+-------------------------
+contribution #11 bnchk-108313235:
+		2367269f 8e0b5b4f a91cb5bb 479c2834
+		6c56f5ca 09c6256d bc3e15c3 d6eab50f
+		ce55d0af f422d487 93f78541 0cbb4250
+		5409f5e0 2f96400e 96d19083 dda1cb67
+-------------------------
+contribution #10 carlogf-24361728:
+		e72d728b 4b7ceac2 c0ff88b1 b16412e3
+		c5d2949b 57662c66 d5d67961 97cb90ea
+		0bdcdc74 84f18579 584f0fc6 146bd5f9
+		063076e7 f242c0cd bd6f312f 784e198c
+-------------------------
+contribution #9 vaipytiQ6-735490:
+		06c84c7d 90fb36d3 e9e5b04f f4a2ac5d
+		b763c509 bab1de04 faf1c11a c9193abe
+		404f0322 96d6535f 012472e0 803dd95b
+		29e97fb0 98d681cb e058b712 f947c0db
+-------------------------
+contribution #8 uawaaN-707694:
+		ec5fff4d ad23a84c 3daeb1a0 ede1f68b
+		49ffb8b4 7b47f228 a8848852 1744fa80
+		1b7d5a6c 8fef2154 7ab4089e 826b262a
+		c575a2d5 b1a36eef 67f8ba79 7db9d1c7
+-------------------------
+contribution #7 atgrosso-81065257:
+		3bc0979c c8e255fc b18d278a c7750987
+		336ef4c8 b87e6bcc bdae765c 2a51e951
+		7d73613f 314e38ca 5a1abb5f c9805906
+		da665e43 c9d0ba7a 95ce5381 72573802
+-------------------------
+contribution #6 ChinoCribioli-54038430:
+		c9d583e5 02f36f75 7e21e679 a7cd2f5b
+		c0bc9418 9b5531fa 7544f529 f3444ea1
+		7be21d14 631cb511 de48c5bc d8646a30
+		d55263cb ea3dd6b4 8daa785d a2d15421
+-------------------------
+contribution #5 ajgara-8537653:
+		1575e584 e3b613a9 46fd90f3 d7a25fab
+		7be98df2 19031bf8 c441caa9 ef30f8d0
+		d0f222b7 f0648c81 9cc4f2f8 d8b54b90
+		e7c8cef2 ab482255 02f08d30 1f05332b
+-------------------------
+contribution #4 schouhy-41742639:
+		5ceeb81c 44bbd180 84d519b8 6e24f3ff
+		be90d645 a27c6faa d53d04b5 1004eba6
+		b57dec63 67311cc2 4e0e9ccd 874b2355
+		6a87ea9e e6532848 3756fc2b 9b1862cb
+-------------------------
+contribution #3 pescantao9-861997:
+		6f96155a a44fa39d f3c6d729 262fc646
+		b2c5eb14 86400b9f 20bdd861 2716259e
+		509a3419 a4b48625 62222a9f 24342181
+		bccf0794 832245a3 8b1724ae 2a6b4eda
+-------------------------
+contribution #2 AgustinBadi-52472400:
+		db18a70f 83497459 6bc13df6 4d181dc6
+		adf20463 5e505c09 f7c04d5a 0cc9aa5b
+		e6776688 ae029fd2 20f9843b 230d5cf7
+		b105a0eb 961afa65 7dad417f fd57bb9b
+-------------------------
+contribution #1 jmagan-24716625:
+		ca1053a4 19d88125 903f98ee 894bc415
+		819f3ecb e490e870 9256eaf2 75a68a99
+		1105c746 3bb5fb19 08557c5e 6199ae95
+		b540f4f2 564cd9f4 cd8ca6be c5130763
+-------------------------
+ZKey Ok!
