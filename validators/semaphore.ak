@@ -3,7 +3,7 @@ use aiken/collection/dict as dict
 use aiken/collection/list
 use aiken/interval.{ Interval }
 use cardano/address.{Script}
-use cardano/assets.{PolicyId} as assets
+use cardano/assets.{PolicyId, policies, from_lovelace, merge, from_asset, without_lovelace} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
 use ak_381/groth16.{groth_verify, SnarkVerificationKey} as groth16
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
@@ -52,8 +52,10 @@ validator semaphore(oref: OutputReference) {
                 // Condition 2: Is Group NFT sent to script?
 
                 let own_script_credential = Script(policy_id)
-
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
+                let out_value = without_lovelace(output_to_script.value) |> policies()
+                let is_nft_sent_to_script: Bool = out_value == [policy_id]
+                
 
                 // Condition 3: Is there a Semaphore Datum atttached?
                 expect InlineDatum(out_datum) = output_to_script.datum
@@ -66,7 +68,12 @@ validator semaphore(oref: OutputReference) {
                 //let (event_start, event_end) = out_semaphore_dat.event_date
                 // let is_event_time_set: Bool = event_start < event_end && is_entirely_after(validity_range, event_start)
 
-                is_one_token_minted && is_nullifier_root_empty
+                and {
+                    is_one_token_minted,
+                    is_nullifier_root_empty,
+                    is_nft_sent_to_script,
+                }
+                
             }
 
             _ -> False
@@ -245,3 +252,9 @@ test iiw_8() {
     is_interval_within(a,tp)
 }
 
+test check_policy_1 () {
+    let ada = from_lovelace(2000000)
+    let token = from_asset(#"ab", #"cd", 1)
+    let val = merge(token, ada)
+    policies(val) == [#"", #"ab"]
+}
