@@ -10,6 +10,7 @@ use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 use aiken/crypto/bls12_381/scalar as scalar
 use aiken/crypto as crypto
 use utilities.{is_policy_on_value, is_interval_within}
+use group.{GroupDatum}
 
 pub const null_hash =
   #"0000000000000000000000000000000000000000000000000000000000000000"
@@ -21,7 +22,7 @@ pub type Redeemer {
 }
 
 pub type SemaphoreDatum {
-    //group_token_policy: PolicyId,
+    group_token_policy: PolicyId,
     group_merke_root: Int,
     admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
@@ -34,7 +35,7 @@ validator semaphore(oref: OutputReference) {
         when rdm is {
             
             Create -> { 
-                let Transaction { inputs, outputs, mint,.. } = self
+                let Transaction { inputs, reference_inputs, outputs, mint,.. } = self
                 //let Transaction { inputs, outputs, mint, validity_range,.. } = self
 
                 // Condition 0: Is expected UTxO spent?
@@ -49,7 +50,7 @@ validator semaphore(oref: OutputReference) {
                 
                 let is_one_token_minted: Bool = amount == 1
 
-                // Condition 2: Is Group NFT sent to script?
+                // Condition 2: Is Semaphore NFT sent to script?
                 let own_script_credential = Script(policy_id)
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
                 let is_nft_sent_to_script: Bool = is_policy_on_value(output_to_script.value, policy_id)
@@ -60,10 +61,17 @@ validator semaphore(oref: OutputReference) {
                 expect InlineDatum(out_datum) = output_to_script.datum
                 expect out_semaphore_dat: SemaphoreDatum = out_datum
 
-                // Condition 4: Is initial MPF root empty?
+                // Condition 4: Is group merkle root correctly set?
+                expect [group_reference_input] = list.filter(reference_inputs, fn (i) { is_policy_on_value(i.output.value, out_semaphore_dat.group_token_policy) })
+                expect InlineDatum(group_datum) = group_reference_input.output.datum
+                expect group_datum_data: GroupDatum = group_datum
+                let is_merkle_root_correct: Bool = group_datum_data.group_merke_root == out_semaphore_dat.group_merke_root
+                
+
+                // Condition 5: Is initial MPF root empty?
                 let is_nullifier_root_empty: Bool = out_semaphore_dat.nullifier_mpf_root == null_hash
 
-                // Condition 5: Is Event time correctly set?
+                // Condition 6: Is Event time correctly set?
                 //let (event_start, event_end) = out_semaphore_dat.event_date
                 // let is_event_time_set: Bool = event_start < event_end && is_entirely_after(validity_range, event_start)
 
@@ -71,6 +79,7 @@ validator semaphore(oref: OutputReference) {
                     is_one_token_minted,
                     is_nullifier_root_empty,
                     is_nft_sent_to_script,
+                    is_merkle_root_correct,
                 }
             }
 
