@@ -1,14 +1,15 @@
 //use aiken/builtin.{bytearray_to_integer}
 use aiken/collection/dict as dict
 use aiken/collection/list
-use aiken/interval.{ Interval }
 use cardano/address.{Script}
-use cardano/assets.{PolicyId, policies, from_lovelace, merge, from_asset, without_lovelace} as assets
+use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
+use aiken/interval
 use ak_381/groth16.{groth_verify, SnarkVerificationKey} as groth16
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 use aiken/crypto/bls12_381/scalar as scalar
 use aiken/crypto as crypto
+use utilities.{is_policy_on_value, is_interval_within}
 
 pub const null_hash =
   #"0000000000000000000000000000000000000000000000000000000000000000"
@@ -20,8 +21,8 @@ pub type Redeemer {
 }
 
 pub type SemaphoreDatum {
+    //group_token_policy: PolicyId,
     group_merke_root: Int,
-    tree_depth: Int, 
     admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
     vkey_ref_input: OutputReference,
@@ -37,7 +38,6 @@ validator semaphore(oref: OutputReference) {
                 //let Transaction { inputs, outputs, mint, validity_range,.. } = self
 
                 // Condition 0: Is expected UTxO spent?
-
                 expect Some(_nft_utxo) = find_input(inputs, oref) 
                 
                 // Condition 1: Is only one Group NFT minted?
@@ -50,11 +50,10 @@ validator semaphore(oref: OutputReference) {
                 let is_one_token_minted: Bool = amount == 1
 
                 // Condition 2: Is Group NFT sent to script?
-
                 let own_script_credential = Script(policy_id)
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
-                let out_value = without_lovelace(output_to_script.value) |> policies()
-                let is_nft_sent_to_script: Bool = out_value == [policy_id]
+                let is_nft_sent_to_script: Bool = is_policy_on_value(output_to_script.value, policy_id)
+                
                 
 
                 // Condition 3: Is there a Semaphore Datum atttached?
@@ -73,7 +72,6 @@ validator semaphore(oref: OutputReference) {
                     is_nullifier_root_empty,
                     is_nft_sent_to_script,
                 }
-                
             }
 
             _ -> False
@@ -144,7 +142,6 @@ validator semaphore(oref: OutputReference) {
                 expect out_datum: SemaphoreDatum = out_data
                 let is_datum_preserved: Bool = and {
                     dat.group_merke_root == out_datum.group_merke_root,
-                    dat.tree_depth == out_datum.tree_depth,
                     dat.admin_pkh == out_datum.admin_pkh,
                     dat.vkey_ref_input == out_datum.vkey_ref_input,
                     dat.event_date == out_datum.event_date,
@@ -198,63 +195,5 @@ validator semaphore(oref: OutputReference) {
     }
 }
 
-// Helper functions
 
-fn is_interval_within(iv1: Interval<Int>,time_pair: (Int,Int)) -> Bool {
-    interval.is_entirely_after(iv1, time_pair.1st) && interval.is_entirely_before(iv1, time_pair.2nd) 
-}
 
-test iiw_1() {
-    let a = interval.between(5,10)
-    let tp = (1,20)
-    is_interval_within(a,tp)
-}
-
-test iiw_2() fail {
-    let a = interval.between(5,30)
-    let tp = (1,20)
-    is_interval_within(a,tp)
-}
-
-test iiw_3() {
-    let a = interval.between(2,19)
-    let tp = (1,20)
-    is_interval_within(a,tp)
-}
-
-test iiw_4() fail {
-    let a = interval.between(21,30)
-    let tp = (1,20)
-    is_interval_within(a,tp)
-}
-
-test iiw_5() fail {
-    let a = interval.between(15,30)
-    let tp = (1,20)
-    is_interval_within(a,tp)
-}
-
-test iiw_6() fail {
-    let a = interval.between(1,10)
-    let tp = (20,60)
-    is_interval_within(a,tp)
-}
-
-test iiw_7() fail {
-    let a = interval.between(1,30)
-    let tp = (20,60)
-    is_interval_within(a,tp)
-}
-
-test iiw_8() {
-    let a = interval.between(34,35)
-    let tp = (33,60)
-    is_interval_within(a,tp)
-}
-
-test check_policy_1 () {
-    let ada = from_lovelace(2000000)
-    let token = from_asset(#"ab", #"cd", 1)
-    let val = merge(token, ada)
-    policies(val) == [#"", #"ab"]
-}
