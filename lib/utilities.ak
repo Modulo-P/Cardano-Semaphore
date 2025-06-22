@@ -1,4 +1,4 @@
-use cardano/assets.{Value, PolicyId, policies, without_lovelace} as assets
+use cardano/assets.{Value, PolicyId, policies} as assets
 use aiken/collection/list as list
 use aiken/interval.{ Interval }
 
@@ -6,7 +6,7 @@ use aiken/interval.{ Interval }
 // Helper functions
 
 pub fn is_policy_on_value(value: Value, policy_id: PolicyId) -> Bool {
-    let result: List<PolicyId> = without_lovelace(value) |> policies()
+    let result: List<PolicyId> = policies(value)
     list.has(result, policy_id)
 }
 
