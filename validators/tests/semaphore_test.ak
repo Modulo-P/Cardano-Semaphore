@@ -51,6 +51,7 @@ fn define_create_tx() -> Transaction {
     }
     let semaphore_datum: SemaphoreDatum = SemaphoreDatum {
         group_merke_root: 0,
+        group_token_policy: #"ddeeff",
         admin_pkh: #"aabbcc",
         nullifier_mpf_root: #"0000000000000000000000000000000000000000000000000000000000000000",
         vkey_ref_input: vkey_oref,
@@ -189,6 +190,7 @@ fn signal_tx() -> Transaction {
     // Define Output
     let semaphore_datum: SemaphoreDatum = SemaphoreDatum {
         group_merke_root: 2918619243380075077683114937688957371178715648700203897594795409293125897247,
+        group_token_policy: #"ddeeff",
         admin_pkh: #"aabbcc",
         nullifier_mpf_root: #"df681c36097d72a7764c81e07096e7dcf88605ff980011cb33ef20505e5825cf",
         vkey_ref_input: vkey_input.output_reference,
@@ -223,6 +225,7 @@ test signal_1 () {
    // Datum 
    let semaphore_datum: SemaphoreDatum = SemaphoreDatum {
         group_merke_root: 2918619243380075077683114937688957371178715648700203897594795409293125897247,
+        group_token_policy: #"ddeeff",
         admin_pkh: #"aabbcc",
         nullifier_mpf_root: #"0000000000000000000000000000000000000000000000000000000000000000",
         vkey_ref_input: vkey_input.output_reference,
