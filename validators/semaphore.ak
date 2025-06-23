@@ -22,7 +22,6 @@ pub type Redeemer {
 pub type SemaphoreDatum {
     group_token_policy: PolicyId,
     group_merke_root: Int,
-    admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
     vkey_ref_input: OutputReference,
 }
@@ -66,10 +65,7 @@ validator semaphore(oref: OutputReference) {
                 // Condition 5: Is initial MPF root empty?
                 let is_nullifier_root_empty: Bool = out_semaphore_dat.nullifier_mpf_root == null_hash
 
-                // Condition 6: Is Event time correctly set?
-                //let (event_start, event_end) = out_semaphore_dat.event_date
-                // let is_event_time_set: Bool = event_start < event_end && is_entirely_after(validity_range, event_start)
-
+                
                 and {
                     is_one_token_minted,
                     is_nullifier_root_empty,
@@ -103,7 +99,7 @@ validator semaphore(oref: OutputReference) {
                 expect out_datum: SemaphoreDatum = out_data
                 let is_datum_preserved: Bool = and {
                     dat.group_merke_root == out_datum.group_merke_root,
-                    dat.admin_pkh == out_datum.admin_pkh,
+                    dat.group_token_policy == out_datum.group_token_policy,
                     dat.vkey_ref_input == out_datum.vkey_ref_input,
                 }
 
@@ -112,16 +108,17 @@ validator semaphore(oref: OutputReference) {
                 expect InlineDatum(snark_vkey_input) = snark_vkey_ref_input.output.datum
                 expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
-                // Cond 3: Verify ZK proof
+                // Get external nullifier value (The scripthash/policyID of the validator itself)
                 expect Script(script_hash) = this_script_address.payment_credential
                 expect Some(external_nullifier) = scalar.from_bytearray_little_endian(script_hash) 
+
+                // Cond 3: Verify ZK proof
                 let public_values: List<Int> = [
                     dat.group_merke_root,                // Group MT root hash
                     nullifier,                           // Nullifier  
                     signal_hash,                         // SignalHash
                     scalar.to_int(external_nullifier),   // External_nullifier
                 ]
-
                 let is_snark_correct: Bool = groth_verify(snark_vkey, zk_proof, public_values)
 
                 // Cond 4: Is the Nullifier already inserted.
@@ -134,7 +131,8 @@ validator semaphore(oref: OutputReference) {
 
                 let is_new_nullifier_root: Bool = mpf.from_root(out_datum.nullifier_mpf_root) == new_mpf_nullifier
 
-                // TODO: Condition 6. Is message tampered?
+                // Condition 5. Is message tampered?
+                // Warning: This imply changing the circuit
                 let message_digest = hash_function(signal_message)
                 let is_signal_message_tampered: Bool = message_digest == signal_hash
         
