@@ -4,12 +4,11 @@ use aiken/collection/list
 use cardano/address.{Script}
 use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
-use aiken/interval
 use ak_381/groth16.{groth_verify, SnarkVerificationKey} as groth16
 use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 use aiken/crypto/bls12_381/scalar as scalar
 use aiken/crypto as crypto
-use utilities.{is_policy_on_value, is_interval_within}
+use utilities.{is_policy_on_value, is_interval_within, hash_function}
 use group.{GroupDatum}
 
 pub const null_hash =
@@ -26,7 +25,6 @@ pub type SemaphoreDatum {
     admin_pkh: ByteArray,
     nullifier_mpf_root: ByteArray,
     vkey_ref_input: OutputReference,
-    event_date: (Int, Int),     // (PosixTimeStart, PosixTimeEnd)
 }
 
 validator semaphore(oref: OutputReference) {
@@ -86,7 +84,7 @@ validator semaphore(oref: OutputReference) {
 
     spend(datum: Option<SemaphoreDatum>, rdm: Redeemer, utxo: OutputReference, self: Transaction) -> Bool {
         when rdm is {
-            Signal(zk_proof, mpf_proof, nullifier, signal_hash) -> {
+            Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message) -> {
                 let Transaction { inputs, outputs, validity_range, .. } = self
                 expect Some(dat) = datum
 
@@ -107,7 +105,6 @@ validator semaphore(oref: OutputReference) {
                     dat.group_merke_root == out_datum.group_merke_root,
                     dat.admin_pkh == out_datum.admin_pkh,
                     dat.vkey_ref_input == out_datum.vkey_ref_input,
-                    dat.event_date == out_datum.event_date,
                 }
 
                 // Condition 2: Is Snark Verification Keys reference input correct?
@@ -137,19 +134,17 @@ validator semaphore(oref: OutputReference) {
 
                 let is_new_nullifier_root: Bool = mpf.from_root(out_datum.nullifier_mpf_root) == new_mpf_nullifier
 
-                // Condition 5: Is within event time range?
-                let is_within_time_event: Bool = is_interval_within(validity_range, dat.event_date)
-
                 // TODO: Condition 6. Is message tampered?
-                // It is important to check that digest(signal) == signal_hash, so that a relay doesn't tamper the message.
-                // But I will add this constraint as part of the voting validator.                 
+                let message_digest = hash_function(signal_message)
+                let is_signal_message_tampered: Bool = message_digest == signal_hash
+        
                 
                 and {
                     is_value_returned,
                     is_datum_preserved,
                     is_snark_correct,
                     is_new_nullifier_root,
-                    is_within_time_event,
+                    is_signal_message_tampered,
                 }
             }
 
