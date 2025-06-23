@@ -17,7 +17,6 @@ pub const null_hash =
 
 pub type Redeemer {
     Create
-    Modify
     Signal(groth16.Proof, mpf.Proof, Int, Int)
 }
 
@@ -41,8 +40,7 @@ validator semaphore(oref: OutputReference) {
                 // Condition 0: Is expected UTxO spent?
                 expect Some(_nft_utxo) = find_input(inputs, oref) 
                 
-                // Condition 1: Is only one Group NFT minted?
-
+                // Condition 1: Is only one Semaphore NFT minted?
                 expect [Pair(_asset_name, amount)] =
                     mint
                     |> assets.tokens(policy_id)
@@ -54,7 +52,6 @@ validator semaphore(oref: OutputReference) {
                 let own_script_credential = Script(policy_id)
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
                 let is_nft_sent_to_script: Bool = is_policy_on_value(output_to_script.value, policy_id)
-                
                 
 
                 // Condition 3: Is there a Semaphore Datum atttached?
@@ -89,49 +86,6 @@ validator semaphore(oref: OutputReference) {
 
     spend(datum: Option<SemaphoreDatum>, rdm: Redeemer, utxo: OutputReference, self: Transaction) -> Bool {
         when rdm is {
-            Modify -> {
-                let Transaction { inputs, outputs, validity_range, extra_signatories, .. } = self
-                expect Some(dat) = datum
-
-                // Condition 0: Is Tx signed by admin?
-                let is_signed_by_admin: Bool = list.has(extra_signatories, dat.admin_pkh)
-
-                // Find script address and value
-
-                expect Some(this_script_input) = find_input(inputs, utxo)
-                let this_script_address = this_script_input.output.address
-                let this_script_value =  this_script_input.output.value |> assets.without_lovelace()
-                
-
-                // Condition 1: Is script value sent back?
-
-                expect [output_to_script] = list.filter(outputs, fn (o) { o.address == this_script_address })
-                let is_value_returned: Bool = assets.without_lovelace(output_to_script.value) == this_script_value
-
-                // Define which fields of the Semaphore Datum must be preserved.
-                 expect InlineDatum(out_data) = output_to_script.datum
-                expect out_datum: SemaphoreDatum = out_data
-                let is_datum_preserved: Bool = and {
-                    dat.event_date == out_datum.event_date, // Revalute this
-                    dat.nullifier_mpf_root == out_datum.nullifier_mpf_root,
-                }
-
-                // Condition 3: Is the modification before the event?
-                // The admin can't modify the Datum once the singaling event starts...
-                //expect IntervalBound { bound_type: Finite(last_tx_time_point), is_inclusive: _v } = validity_range.upper_bound
-                //let is_before_event: Bool = last_tx_time_point < dat.event_date.1st
-                let is_before_event: Bool = interval.is_entirely_before(validity_range, dat.event_date.1st)
-                
-
-                and {
-                    is_signed_by_admin,
-                    is_value_returned,
-                    is_datum_preserved,
-                    is_before_event,
-                }
-
-            }
-
             Signal(zk_proof, mpf_proof, nullifier, signal_hash) -> {
                 let Transaction { inputs, outputs, validity_range, .. } = self
                 expect Some(dat) = datum
