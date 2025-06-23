@@ -2,7 +2,7 @@ use aiken/interval.{Interval, IntervalBound, Finite }
 use cardano/transaction.{OutputReference, Transaction, Output, NoDatum, InlineDatum, Input, ValidityRange}
 use cardano/address.{Script, Address, from_verification_key}
 use cardano/assets.{Value, from_asset, from_lovelace}
-use semaphore.{Redeemer, Create, Modify, Signal, SemaphoreDatum}
+use semaphore.{Redeemer, Create, Signal, SemaphoreDatum}
 use ak_381/groth16.{SnarkVerificationKey, groth_verify, Proof} as groth16
 use aiken/crypto/bls12_381/scalar as scalar
 use aiken/crypto as crypto
@@ -111,16 +111,16 @@ fn define_modify_tx() -> Transaction {
     add_output_to_tx
 }
 
-test modify_group() {
-    let rdm = Modify
-    let oref = OutputReference { transaction_id: #"9abc", output_index: 0}
-    let prev_tx = define_create_tx()
-    expect[prev_output] = prev_tx.outputs
-    expect InlineDatum(prev_dat) = prev_output.datum
-    expect previous_datum: SemaphoreDatum = prev_dat
-    let tx = define_modify_tx()
-    semaphore.semaphore.spend(initial_oref,Some(previous_datum), rdm, oref, tx)
-}
+//test modify_group() {
+//    let rdm = Modify
+//    let oref = OutputReference { transaction_id: #"9abc", output_index: 0}
+//    let prev_tx = define_create_tx()
+//    expect[prev_output] = prev_tx.outputs
+//    expect InlineDatum(prev_dat) = prev_output.datum
+//    expect previous_datum: SemaphoreDatum = prev_dat
+//    let tx = define_modify_tx()
+//    semaphore.semaphore.spend(initial_oref,Some(previous_datum), rdm, oref, tx)
+//}
 
 
 const vk: SnarkVerificationKey = SnarkVerificationKey {

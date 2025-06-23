@@ -1,5 +1,6 @@
 use cardano/assets.{Value, PolicyId, policies} as assets
 use aiken/collection/list as list
+use aiken/crypto as crypto
 use aiken/interval.{ Interval }
 
 
@@ -13,4 +14,8 @@ pub fn is_policy_on_value(value: Value, policy_id: PolicyId) -> Bool {
 
 pub fn is_interval_within(iv1: Interval<Int>,time_pair: (Int,Int)) -> Bool {
     interval.is_entirely_after(iv1, time_pair.1st) && interval.is_entirely_before(iv1, time_pair.2nd) 
+}
+
+pub fn hash_function(message: ByteArray) -> ByteArray {
+    crypto.sha3_256(ByteArray)
 }
