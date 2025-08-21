@@ -1,4 +1,5 @@
 //use aiken/builtin.{bytearray_to_integer}
+use aiken/builtin.{integer_to_bytearray}
 use aiken/collection/dict as dict
 use aiken/collection/list
 use aiken/crypto as crypto
@@ -11,14 +12,14 @@ use cardano/transaction.{
   InlineDatum, Input, OutputReference, Transaction, find_input,
 }
 use group.{GroupDatum}
-use utilities.{is_interval_within, is_policy_on_value}
+use utilities.{is_policy_on_value}
 
 pub const null_hash =
   #"0000000000000000000000000000000000000000000000000000000000000000"
 
-pub type Redeemer {
+pub type SemaphoreRedeemer {
   Create
-  Signal(groth16.Proof, mpf.Proof, Int, Int)
+  Signal(groth16.Proof, mpf.Proof, Int, Int, Int)
 }
 
 pub type SemaphoreDatum {
@@ -29,7 +30,7 @@ pub type SemaphoreDatum {
 }
 
 validator semaphore(oref: OutputReference) {
-  mint(rdm: Redeemer, policy_id: PolicyId, self: Transaction) {
+  mint(rdm: SemaphoreRedeemer, policy_id: PolicyId, self: Transaction) {
     when rdm is {
       Create -> {
         let Transaction { inputs, reference_inputs, outputs, mint, .. } = self
@@ -92,13 +93,13 @@ validator semaphore(oref: OutputReference) {
 
   spend(
     datum: Option<SemaphoreDatum>,
-    rdm: Redeemer,
+    rdm: SemaphoreRedeemer,
     utxo: OutputReference,
     self: Transaction,
   ) {
     when rdm is {
       Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message) -> {
-        let Transaction { inputs, outputs, validity_range, .. } = self
+        let Transaction { inputs, outputs, .. } = self
         expect Some(dat) = datum
 
         // Find script input
@@ -164,8 +165,13 @@ validator semaphore(oref: OutputReference) {
 
         // Condition 5. Is message tampered?
         // Warning: This imply changing the circuit
-        let message_digest = crypto.blake2b_256(signal_message)
-        let is_signal_message_tampered: Bool = message_digest == signal_hash
+        let converted_signal_hash: ByteArray =
+          integer_to_bytearray(True, 0, signal_message)
+        let converted_signal: ByteArray =
+          integer_to_bytearray(True, 0, signal_message)
+        let message_digest = crypto.blake2b_256(converted_signal)
+        let is_signal_message_tampered: Bool =
+          message_digest == converted_signal_hash
         and {
           is_value_returned,
           is_datum_preserved,
