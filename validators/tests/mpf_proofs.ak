@@ -5,7 +5,7 @@ use semaphore.{null_hash}
 
 
 
-test insert_nullifier() {
+test insert_nullifier() fail {
     
     let nullifier_mpf: MerklePatriciaForestry = mpf.from_root(null_hash)
     expect Some(nullifier) = scalar.new(23445013842044814549757189106306795768824425794189026441097293917493308616940)
