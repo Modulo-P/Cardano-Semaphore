@@ -659,14 +659,617 @@ test spend_signal_semaphore_1() {
 }
 
 
+// Spending logic test - tests the Signal redeemer functionality
+test spend_value_not_sent_back() fail {
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: null_hash,  // Initially empty
+        vkey_ref_input: vkey_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+    
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(bytearray.from_string(@"other_address")),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, vkey_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
+
+test spend_datum_not_preserved_1() fail {
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: null_hash,  // Initially empty
+        vkey_ref_input: vkey_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+    
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: 23445013842044814549757189106306795768824425794189026441097293917493308616940, // Another group root
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, vkey_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
+
+test spend_datum_not_preserved_2() fail {
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: null_hash,  // Initially empty
+        vkey_ref_input: vkey_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+    
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: bytearray.from_string(@"another_group_policy"),
+        group_merke_root: group_merkle_root, // Another group root
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, vkey_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
+
+test spend_vkey_field_with_incorrect_value() fail {
+    let wrong_vk_input: Input =
+    Input {
+        output_reference: OutputReference {
+        transaction_id: #"01bc",
+        output_index: 0,
+        },
+        output: Output {
+        address: Address {
+            payment_credential: Script(
+            #"0000000000000000000000000000000000000000000000000000000000000000",
+            ),
+            stake_credential: None,
+        },
+        value: from_lovelace(1),
+        datum: InlineDatum(1),
+        reference_script: None,
+        },
+    }
+
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: null_hash,  // Initially empty
+        vkey_ref_input: wrong_vk_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+    
+    
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, wrong_vk_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
+
+test spend_incorrect_zk_proof() fail {
+    let other_zk_proof: Proof = Proof {
+      piA: #"98d99a7c03164d509d19c96050c8819bc494b0d37fce028fab4f2f94555567f86dd3c032f0a4333ec697c7f278778c7d",
+      piB: #"aace565bacf7a59cb0c3d6213b0d456e24ba203ca970017ef3e7a4ff2a107389923ba3537c9e96da835805a36fdd213714da13d3bf26e944e392f324ef76277c8b74158b102a1d9b1ebc5bd106edd6959366ce1fbe469f0e07a72b21480004c8",
+      piC: #"87db3006944e7ed1b1b62fa4fd285b60cc32dac42ec0b19583fa7c51c7ed0f188e1c7e1af295a71f163d2d88862ef41c",
+    }
+
+
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: null_hash,  // Initially empty
+        vkey_ref_input: vkey_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+      
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(other_zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, vkey_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
+
+test spend_nullifier_already_inserted() fail {
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root:  #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",  // Initially empty
+        vkey_ref_input: vkey_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+    
+    // Create updated nullifier MPF root (after inserting the nullifier)
+//    let initial_mpf: MerklePatriciaForestry = mpf.from_root(null_hash)
+//    expect Some(n_value) = scalar.new(nullifier)
+//    let nullifier_value: ByteArray = scalar.to_bytearray_little_endian(n_value, 0)
+//    let nullifier_key: ByteArray = crypto.blake2b_256(nullifier_value)
+    
+ //   // Create a dummy MPF proof for testing
+ //   let mpf_proof: MpfProof = mpf.empty_proof()
+ //   let updated_mpf: MerklePatriciaForestry = mpf.insert(initial_mpf, nullifier_key, nullifier_value, mpf_proof)
+ //   let updated_mpf_root: ByteArray = mpf.to_root(updated_mpf)
+    
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, vkey_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
+
+
+test spend_tampered_message() fail {
+    let tx: Transaction = transaction.placeholder
+    
+    // Test data extracted from the constants defined above
+    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
+    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
+
+
+    // Create the semaphore UTxO reference that we're spending
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+    
+    // Create the initial semaphore datum (input state)
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: null_hash,  // Initially empty
+        vkey_ref_input: vkey_input.output_reference,
+    }   
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+    
+    // Create updated nullifier MPF root (after inserting the nullifier)
+//    let initial_mpf: MerklePatriciaForestry = mpf.from_root(null_hash)
+//    expect Some(n_value) = scalar.new(nullifier)
+//    let nullifier_value: ByteArray = scalar.to_bytearray_little_endian(n_value, 0)
+//    let nullifier_key: ByteArray = crypto.blake2b_256(nullifier_value)
+    
+ //   // Create a dummy MPF proof for testing
+ //   let mpf_proof: MpfProof = mpf.empty_proof()
+ //   let updated_mpf: MerklePatriciaForestry = mpf.insert(initial_mpf, nullifier_key, nullifier_value, mpf_proof)
+ //   let updated_mpf_root: ByteArray = mpf.to_root(updated_mpf)
+    
+    // Create the output semaphore datum (updated state with new nullifier)
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    
+    // Create the output semaphore UTxO (returned to script)
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,  // Same value returned
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+    
+    // Create the Signal redeemer with ZK proof and MPF proof
+    let mpf_proof = []
+    let tampered_message = #"aabbccdd"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, tampered_message)
+    
+    // Build the transaction
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input, vkey_input],  // Include vkey as reference input
+        outputs: [semaphore_output],
+    }
+    
+    // Test the spending validator logic
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer, 
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
 
 
 
 
-
-// Param of the minting part of the script
-//const initial_oref: OutputReference =
-//  OutputReference {
-//    transaction_id: #"c18fb45bb0450c6af07abf0cf8252aef5324a048f86ba9f3dc868bc7",
-//    output_index: 0,
-//  }
