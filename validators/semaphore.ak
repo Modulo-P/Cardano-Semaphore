@@ -153,6 +153,10 @@ validator semaphore(oref: OutputReference) {
         let nullifier_mpf: MerklePatriciaForestry =
           mpf.from_root(dat.nullifier_mpf_root)
 
+        // TODO: The idea is to deserialize the mpf_proof
+        // - Redefine the mpf of the Signal(..) redeemer to bytearray.
+        // - Deserealise the mpf_proof to a MPF proof.
+        // Look https://github.com/aiken-lang/merkle-patricia-forestry/tree/main/off-chain#prooftocbor-buffer
         expect Some(n_value) = scalar.new(nullifier)
         let nullifier_value: ByteArray =
           scalar.to_bytearray_little_endian(n_value, 0)
@@ -165,10 +169,6 @@ validator semaphore(oref: OutputReference) {
 
         // Condition 5. Is message tampered?
         // Warning: This imply changing the circuit
-        //let converted_signal_hash: ByteArray =
-        //  integer_to_bytearray(True, 0, signal_message)
-        //let converted_signal: ByteArray =
-        //  integer_to_bytearray(True, 0, signal_message)
         let message_digest = crypto.blake2b_256(signal_message)
         expect Some(message_digest_scalar) = scalar.from_bytearray_big_endian(message_digest)
         let message_digest_int = scalar.to_int(message_digest_scalar)
