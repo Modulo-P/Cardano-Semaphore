@@ -11,24 +11,6 @@
 //// both cpu and mem units. And they also provide proofs that are a / lot smaller
 //// than traditional Merkle Patricia Trie; proofs remain however the / main
 //// limiting factor.
-////
-//// Here's a little table that summarizes the average proof's sizes in bytes
-//// given a number of elements.
-////
-//// We also consider the average memory and CPU execution units for verifying
-//// a proof for various sizes. Note that [`insert`](#insert) and
-//// [`delete`](#delete) require **two** proofs verifications.
-////
-//// size | avg proof size | avg proof mem | avg proof cpu |
-//// ---: | -------------: | ------------: | ------------: |
-////  10² |          250   | 70K           | 28M           |
-////  10³ |          350   | 100K          | 42M           |
-////  10⁴ |          460   | 130K          | 56M           |
-////  10⁵ |          560   | 160K          | 70M           |
-////  10⁶ |          670   | 190K          | 84M           |
-////  10⁷ |          780   | 220K          | 98M           |
-////  10⁸ |          880   | 250K          | 112M          |
-////  10⁹ |          990   | 280K          | 126M          |
 
 use aiken/builtin.{blake2b_256, slice_bytearray}
 use aiken/merkle_patricia_forestry/helpers.{combine, nibble, nibbles, suffix}
@@ -106,7 +88,10 @@ pub fn is_empty(self: MerklePatriciaForestry) -> Bool {
 /// requires a [Proof](#Proof) of inclusion for the element. The latter can be
 /// obtained off-chain from the whole trie containing the element.
 ///
-/// Returns `False` when the element isn't in the tree.
+/// > [!CAUTION]
+/// > `False` doesn't necessarily indicate that the key IS NOT in the trie.
+/// > It only indicates that it isn't present with the given value. To prove
+/// > exclusion of a key, use [`miss`](#miss).
 pub fn has(
   self: MerklePatriciaForestry,
   key: ByteArray,
@@ -114,6 +99,20 @@ pub fn has(
   proof: Proof,
 ) -> Bool {
   including(key, value, proof) == self.root
+}
+
+/// since | <code>1.2.0</code>
+/// ---   | ---
+///
+/// Test whether a key is missing from the trie. This requires a
+/// [Proof](#Proof) of exclusion for the element. The latter can be obtained
+/// off-chain from the whole trie containing the element.
+///
+/// > [!CAUTION]
+/// > `False` doesn't necessarily indicate that the element IS in the trie.
+/// > To prove inclusion, use [`has`](#has).
+pub fn miss(self: MerklePatriciaForestry, key: ByteArray, proof: Proof) -> Bool {
+  excluding(key, proof) == self.root
 }
 
 // # Modifying
@@ -149,7 +148,7 @@ pub fn insert(
 /// #### Fails when
 ///
 /// - the [Proof](#Proof) is invalid
-/// - there's already an element in the trie at the given key
+/// - there is no element in the trie at the given key
 pub fn delete(
   self: MerklePatriciaForestry,
   key: ByteArray,
@@ -180,7 +179,7 @@ pub fn update(
   proof: Proof,
   old_value: ByteArray,
   new_value: ByteArray,
-) {
+) -> MerklePatriciaForestry {
   expect including(key, old_value, proof) == self.root
   // If we were doing a delete followed by an insert, we'd end up checking the `excluding` again here
   MerklePatriciaForestry { root: including(key, new_value, proof) }
@@ -249,6 +248,12 @@ fn including(key: ByteArray, value: ByteArray, proof: Proof) -> ByteArray {
   do_including(blake2b_256(key), blake2b_256(value), 0, proof)
 }
 
+test including_empty_proof() {
+  let (k, v) = ("foo", "bar")
+  let path = blake2b_256(k)
+  including(k, v, []) == combine(suffix(path, 0), blake2b_256(v))
+}
+
 fn do_including(
   path: ByteArray,
   value: ByteArray,
@@ -259,29 +264,29 @@ fn do_including(
     [] -> combine(suffix(path, cursor), value)
 
     [Branch { skip, neighbors }, ..steps] -> {
-      let nextCursor = cursor + 1 + skip
-      let root = do_including(path, value, nextCursor, steps)
-      do_branch(path, cursor, nextCursor, root, neighbors)
+      let next_cursor = cursor + skip
+      let root = do_including(path, value, next_cursor + 1, steps)
+      do_branch(path, cursor, next_cursor, root, neighbors)
     }
 
     [Fork { skip, neighbor }, ..steps] -> {
-      let nextCursor = cursor + 1 + skip
-      let root = do_including(path, value, nextCursor, steps)
-      do_fork(path, cursor, nextCursor, root, neighbor)
+      let next_cursor = cursor + skip
+      let root = do_including(path, value, next_cursor + 1, steps)
+      do_fork(path, cursor, next_cursor, root, neighbor)
     }
 
-    [Leaf { skip, key, value: neighborValue }, ..steps] -> {
-      let nextCursor = cursor + 1 + skip
-      let root = do_including(path, value, nextCursor, steps)
+    [Leaf { skip, key, value: neighbor_value }, ..steps] -> {
+      let next_cursor = cursor + skip
+      let root = do_including(path, value, next_cursor + 1, steps)
 
       let neighbor =
         Neighbor {
-          prefix: suffix(key, nextCursor),
-          nibble: nibble(key, nextCursor - 1),
-          root: neighborValue,
+          prefix: suffix(key, next_cursor + 1),
+          nibble: nibble(key, next_cursor),
+          root: neighbor_value,
         }
 
-      do_fork(path, cursor, nextCursor, root, neighbor)
+      do_fork(path, cursor, next_cursor, root, neighbor)
     }
   }
 }
@@ -298,41 +303,78 @@ fn excluding(key: ByteArray, proof: Proof) -> ByteArray {
   do_excluding(blake2b_256(key), 0, proof)
 }
 
+test excluding_empty_proof() {
+  excluding("foo", []) == empty.root
+}
+
 fn do_excluding(path: ByteArray, cursor: Int, proof: Proof) -> ByteArray {
   when proof is {
     [] -> null_hash
 
     [Branch { skip, neighbors }, ..steps] -> {
-      let nextCursor = cursor + 1 + skip
-      let root = do_excluding(path, nextCursor, steps)
-      do_branch(path, cursor, nextCursor, root, neighbors)
+      let next_cursor = cursor + skip
+      let root = do_excluding(path, next_cursor + 1, steps)
+      do_branch(path, cursor, next_cursor, root, neighbors)
     }
 
-    [Fork { neighbor, .. }] -> {
-      let prefix = bytearray.push(neighbor.prefix, neighbor.nibble)
+    [Fork { skip, neighbor }] -> {
+      let neighbor_prefix = bytearray.push(neighbor.prefix, neighbor.nibble)
+      let prefix =
+        if skip == 0 {
+          neighbor_prefix
+        } else {
+          // For skip > 0, we need to reconstruct the original neighbor node
+          // before the fork was created. The original node had the full prefix:
+          //
+          // (common prefix) + (neighbor nibble) + (neighbor's current prefix)
+          //
+          // For example, imagine we're trying to reconstruct the trie on the left,
+          // from a proof on {accc -> 2}
+          //
+          //     <aaa>                          <a>
+          // ┌─────┴─────┐      =>       ┌───────┴──────┐
+          // a<>         b<>             a<a>           c<cc>
+          // │           │               │              │
+          // │           │           ┌───┴────┐         │
+          // │           │           a<>      b<>       │
+          // │           │           │        │         │
+          // 0           1           0        1         2
+          //
+          // Here, we have:
+          //
+          // - common prefix = 'a'
+          // - neighbor.nibble = 'a'
+          // - neighbor's current prefix = 'a'
+          //
+          // Which we can use reconstruct the original prefix of the branch to 'aaa'.
+          bytearray.concat(
+            nibbles(path, cursor, cursor + skip),
+            neighbor_prefix,
+          )
+        }
       combine(prefix, neighbor.root)
     }
 
     [Fork { skip, neighbor }, ..steps] -> {
-      let nextCursor = cursor + 1 + skip
-      let root = do_excluding(path, nextCursor, steps)
-      do_fork(path, cursor, nextCursor, root, neighbor)
+      let next_cursor = cursor + skip
+      let root = do_excluding(path, next_cursor + 1, steps)
+      do_fork(path, cursor, next_cursor, root, neighbor)
     }
 
     [Leaf { key, value, .. }] -> combine(suffix(key, cursor), value)
 
     [Leaf { skip, key, value }, ..steps] -> {
-      let nextCursor = cursor + 1 + skip
-      let root = do_excluding(path, nextCursor, steps)
+      let next_cursor = cursor + skip
+      let root = do_excluding(path, next_cursor + 1, steps)
 
       let neighbor =
         Neighbor {
-          prefix: suffix(key, nextCursor),
-          nibble: nibble(key, cursor),
+          prefix: suffix(key, next_cursor + 1),
+          nibble: nibble(key, next_cursor),
           root: value,
         }
 
-      do_fork(path, cursor, nextCursor, root, neighbor)
+      do_fork(path, cursor, next_cursor, root, neighbor)
     }
   }
 }
@@ -344,37 +386,33 @@ fn do_excluding(path: ByteArray, cursor: Int, proof: Proof) -> ByteArray {
 fn do_branch(
   path: ByteArray,
   cursor: Int,
-  nextCursor: Int,
+  next_cursor: Int,
   root: ByteArray,
   neighbors: ByteArray,
 ) -> ByteArray {
-  let branch = nibble(path, nextCursor - 1)
+  let branch = nibble(path, next_cursor)
 
-  let prefix = nibbles(path, cursor, nextCursor - 1)
+  let prefix = nibbles(path, cursor, next_cursor)
+
+  let select =
+    slice_bytearray(_, blake2b_256_digest_size, neighbors)
 
   combine(
     prefix,
-    merkle_16(
-      branch,
-      root,
-      slice_bytearray(0, blake2b_256_digest_size, neighbors),
-      slice_bytearray(32, blake2b_256_digest_size, neighbors),
-      slice_bytearray(64, blake2b_256_digest_size, neighbors),
-      slice_bytearray(96, blake2b_256_digest_size, neighbors),
-    ),
+    merkle_16(branch, root, select(0), select(32), select(64), select(96)),
   )
 }
 
 fn do_fork(
   path: ByteArray,
   cursor: Int,
-  nextCursor: Int,
+  next_cursor: Int,
   root: ByteArray,
   neighbor: Neighbor,
 ) -> ByteArray {
-  let branch = nibble(path, nextCursor - 1)
+  let branch = nibble(path, next_cursor)
 
-  let prefix = nibbles(path, cursor, nextCursor - 1)
+  let prefix = nibbles(path, cursor, next_cursor)
 
   expect branch != neighbor.nibble
 
@@ -387,4 +425,61 @@ fn do_fork(
       combine(neighbor.prefix, neighbor.root),
     ),
   )
+}
+
+// -----------------------------------------------------------------------------
+// -------------------------------------------------- Foreign Function Interface
+// -----------------------------------------------------------------------------
+
+/// A version of 'has' that unwraps the opaque arguments, to allow being exported.
+fn has_ffi(
+  self: ByteArray,
+  key: ByteArray,
+  value: ByteArray,
+  proof: Proof,
+) -> Bool {
+  including(key, value, proof) == self
+}
+
+test disable_unused_warning_has_ffi() fail {
+  has_ffi("", "", "", [])
+}
+
+/// A version of 'miss' that unwraps the opaque arguments, to allow being exported.
+fn miss_ffi(self: ByteArray, key: ByteArray, proof: Proof) -> Bool {
+  excluding(key, proof) == self
+}
+
+test disable_unused_warning_miss_ffi() fail {
+  miss_ffi("", "", [])
+}
+
+/// A version of 'insert' that unwraps the opaque arguments, to allow being exported.
+fn insert_ffi(
+  self: ByteArray,
+  key: ByteArray,
+  value: ByteArray,
+  proof: Proof,
+) -> ByteArray {
+  expect excluding(key, proof) == self
+  including(key, value, proof)
+}
+
+test disable_unused_warning_insert_ffi() fail {
+  insert_ffi("", "", "", []) == ""
+}
+
+/// A version of 'delete' that unwraps the opaque arguments, to allow being exported.
+fn delete_ffi(
+  self: ByteArray,
+  key: ByteArray,
+  value: ByteArray,
+  proof: Proof,
+) -> ByteArray {
+  expect including(key, value, proof) == self
+  excluding(key, proof)
+}
+
+test disable_unused_warning_delete_ffi() fail {
+  delete_ffi("", "", "", []) == ""
 }

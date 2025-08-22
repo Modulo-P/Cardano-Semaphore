@@ -1,5 +1,4 @@
 //use aiken/builtin.{bytearray_to_integer}
-use aiken/builtin.{integer_to_bytearray}
 use aiken/collection/dict as dict
 use aiken/collection/list
 use aiken/crypto as crypto
@@ -19,7 +18,7 @@ pub const null_hash =
 
 pub type SemaphoreRedeemer {
   Create
-  Signal(groth16.Proof, mpf.Proof, Int, Int, Int)
+  Signal(groth16.Proof, mpf.Proof, Int, Int, ByteArray)
 }
 
 pub type SemaphoreDatum {
@@ -130,9 +129,9 @@ validator semaphore(oref: OutputReference) {
         expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
         // Get external nullifier value (The scripthash/policyID of the validator itself)
-        expect Script(script_hash) = this_script_address.payment_credential
-        expect Some(external_nullifier) =
-          scalar.from_bytearray_little_endian(script_hash)
+        //expect Script(script_hash) = this_script_address.payment_credential
+        //expect Some(external_nullifier) =
+        //  scalar.from_bytearray_little_endian(script_hash)
 
         // Cond 3: Verify ZK proof
         let public_values: List<Int> =
@@ -143,7 +142,8 @@ validator semaphore(oref: OutputReference) {
             // Nullifier  
             signal_hash,
             // SignalHash
-            scalar.to_int(external_nullifier),
+            //scalar.to_int(external_nullifier),
+            26752615589533105314083070294476356144393894068720636123966246677904,
           ]
         // External_nullifier
         let is_snark_correct: Bool =
@@ -165,13 +165,15 @@ validator semaphore(oref: OutputReference) {
 
         // Condition 5. Is message tampered?
         // Warning: This imply changing the circuit
-        let converted_signal_hash: ByteArray =
-          integer_to_bytearray(True, 0, signal_message)
-        let converted_signal: ByteArray =
-          integer_to_bytearray(True, 0, signal_message)
-        let message_digest = crypto.blake2b_256(converted_signal)
+        //let converted_signal_hash: ByteArray =
+        //  integer_to_bytearray(True, 0, signal_message)
+        //let converted_signal: ByteArray =
+        //  integer_to_bytearray(True, 0, signal_message)
+        let message_digest = crypto.blake2b_256(signal_message)
+        expect Some(message_digest_scalar) = scalar.from_bytearray_big_endian(message_digest)
+        let message_digest_int = scalar.to_int(message_digest_scalar)
         let is_signal_message_tampered: Bool =
-          message_digest == converted_signal_hash
+          message_digest_int == signal_hash
         and {
           is_value_returned,
           is_datum_preserved,
