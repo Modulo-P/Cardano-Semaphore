@@ -129,21 +129,18 @@ validator semaphore(oref: OutputReference) {
         expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
         // Get external nullifier value (The scripthash/policyID of the validator itself)
-        //expect Script(script_hash) = this_script_address.payment_credential
-        //expect Some(external_nullifier) =
-        //  scalar.from_bytearray_little_endian(script_hash)
+        expect Script(script_hash) = this_script_address.payment_credential
+        expect Some(external_nullifier) =
+          scalar.from_bytearray_big_endian(script_hash)
+
 
         // Cond 3: Verify ZK proof
         let public_values: List<Int> =
           [
             dat.group_merke_root,
-            // Group MT root hash
             nullifier,
-            // Nullifier  
             signal_hash,
-            // SignalHash
-            //scalar.to_int(external_nullifier),
-            26752615589533105314083070294476356144393894068720636123966246677904,
+            scalar.to_int(external_nullifier),
           ]
         // External_nullifier
         let is_snark_correct: Bool =
@@ -153,7 +150,7 @@ validator semaphore(oref: OutputReference) {
         let nullifier_mpf: MerklePatriciaForestry =
           mpf.from_root(dat.nullifier_mpf_root)
 
-        // TODO: The idea is to deserialize the mpf_proof
+        // TODO: The idea is to deserialize the mpf_proof 
         // - Redefine the mpf of the Signal(..) redeemer to bytearray.
         // - Deserealise the mpf_proof to a MPF proof.
         // Look https://github.com/aiken-lang/merkle-patricia-forestry/tree/main/off-chain#prooftocbor-buffer

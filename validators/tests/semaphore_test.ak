@@ -1,4 +1,5 @@
 //use aiken/collection/dict
+use aiken/builtin
 use aiken/primitive/bytearray
 use cardano/address.{Address, Script, from_verification_key}
 use cardano/assets.{from_lovelace, from_asset, add, Value}
@@ -18,11 +19,16 @@ const initial_oref: OutputReference =
     output_index: 0,
   }
 
+
+test i_serialised() fail {
+    builtin.serialise_data(initial_oref) == #""
+}
+
 const group_policy_id: ByteArray =
   #"90edfed2fa3a42f8f14c300a65d72dd866c16fbff0c36bbb8d0108fe"
 
 const semaphore_policy_id: ByteArray = 
-  #"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+  #"0eee5f592dd86bd196261e3959b17b0a1d278bb1f93fbe69d405fe84"
 
 
 
@@ -548,18 +554,18 @@ test mint_mpf_root_wrong_setup() fail {
 
 const zk_proof: Proof =
   Proof {
-    piA: #"88f1a3db3a777e3909a2416c1eaa1a4753959e25ea8e6d314d83508ecb25644a7a49c84d9e0e48ffbb12f0f3620f348a",
-    piB: #"8319df022fb874b81e0def688fe3158125682fa9ec0a010f302774a0ecf9087788b3e377da1316170102583d8db8159213fa7138dbabc34655162951f33c7e8a75e3de9e4f8431950f43a792634b09fcec324849cca3ec964f98a44ec500429b",
-    piC: #"98c19d179b2cca1526dd3b2ca64f7284bc66229b0b2a470857882e38dfcecedac22a4849231018aea4c193072e76dadc",
+    piA: #"b119c52e58a96d1ec4468454fe82f8b5296482fad92f5a423d270d7ecadd594076f1a9482e26e30bac7c8f72b2c4890f",
+    piB: #"8b7e512d2e4d7beb4980ab2d23e3144bd823294dcf9d0bcdf9015c6d4f75d6c70efb623f942e5b1b622d583d606c64ad08be9a485569ddf16d796e6425e8b831980907a88735e116fbdb2cc33cc40ebbb1c7aa40770187cb47628f383d76c647",
+    piC: #"af1f95bfaa730a3a7ec8d19ce4b24862604bafd027b957b23cbf28d4f45a39badacbd78f52d9985a39db0adecffd5e58",
   }
 
 
 const public_values: List<Int> =
   [
-    18042041726936857126340562197634539391760931710461643262434315853825286542627,
-    23445013842044814549757189106306795768824425794189026441097293917493308616940,
+    1300961563791892545922380221316595384368736985570119147438719621842911365487,
+    38625149408878199693830158794989919308150121977174408046140837150457929803892,
     25050711957853089676855563252373407134946460892559238457710929576024828641940, 
-    26752615589533105314083070294476356144393894068720636123966246677904,
+    1572432823420797245758857646399888151082120029972848899042732015236,
   ]
 
 test snark_1() {
@@ -571,8 +577,11 @@ test spend_signal_semaphore_1() {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+
+
+
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -621,7 +630,7 @@ test spend_signal_semaphore_1() {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -664,8 +673,8 @@ test spend_value_not_sent_back() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -703,7 +712,7 @@ test spend_value_not_sent_back() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -744,8 +753,8 @@ test spend_datum_not_preserved_1() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -783,7 +792,7 @@ test spend_datum_not_preserved_1() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: 23445013842044814549757189106306795768824425794189026441097293917493308616940, // Another group root
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -824,8 +833,8 @@ test spend_datum_not_preserved_2() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -863,7 +872,7 @@ test spend_datum_not_preserved_2() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: bytearray.from_string(@"another_group_policy"),
         group_merke_root: group_merkle_root, // Another group root
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -923,8 +932,8 @@ test spend_vkey_field_with_incorrect_value() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -963,7 +972,7 @@ test spend_vkey_field_with_incorrect_value() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -1011,8 +1020,8 @@ test spend_incorrect_zk_proof() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -1050,7 +1059,7 @@ test spend_incorrect_zk_proof() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -1091,8 +1100,8 @@ test spend_nullifier_already_inserted() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -1107,7 +1116,7 @@ test spend_nullifier_already_inserted() fail {
     let initial_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root:  #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",  // Initially empty
+        nullifier_mpf_root:  #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",  // Initially empty
         vkey_ref_input: vkey_input.output_reference,
     }   
     let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
@@ -1141,7 +1150,7 @@ test spend_nullifier_already_inserted() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
@@ -1183,8 +1192,8 @@ test spend_tampered_message() fail {
     let tx: Transaction = transaction.placeholder
     
     // Test data extracted from the constants defined above
-    let group_merkle_root = 18042041726936857126340562197634539391760931710461643262434315853825286542627
-    let nullifier = 23445013842044814549757189106306795768824425794189026441097293917493308616940
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
     //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
@@ -1233,7 +1242,7 @@ test spend_tampered_message() fail {
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: #"d024bfbb8a109002b537eb86e7510904e695d1bb5dc8d2c64734eccf369bd590",
+        nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
         vkey_ref_input: vkey_input.output_reference,
     }
     
