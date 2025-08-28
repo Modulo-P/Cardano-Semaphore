@@ -4,15 +4,19 @@
 
 # Cardano-Semaphore
 
-## Intro
+A Zero-Knowledge implementation of the Semaphore protocol on Cardano, built with Aiken smart contracts.
 
-This repository contains the Aiken implementation of the Semaphore protocol, originally developed for Ethereum by the PSE.DEV group. Semaphore is a Zero-Knowledge based protocol that allows users to privately proof their membership to a group and send messages like preferences or votes anonymously. Essentially, the protocol allows you to accomplish three things:
+## Overview
 
-* Create and register an identity within a group.
-* Prove that your identity is a member of the group without revealing exactly who.
-* Anonymously broadcast an arbitrary string that can represent a preference, vote or opinion.
+This repository contains an Aiken-based implementation of the Semaphore protocol, originally developed for Ethereum by PSE.DEV. Semaphore is a Zero-Knowledge protocol that enables private group membership proofs and anonymous messaging.
 
- The idea of the protocol is to be a base protocol which can extended to address different privacy oriented applications.
+### Core Features
+
+- **Anonymous Group Membership**: Prove group participation without revealing identity  
+- **Anonymous Signaling**: Broadcast messages, votes, or preferences anonymously
+- **Double-Signaling Prevention**: Cryptographic protection against duplicate messages
+
+This implementation serves as a foundational protocol for privacy-oriented applications on Cardano.
 
 ## Key protocol concepts
 
@@ -29,9 +33,6 @@ A group is a set of members, where each member has their identity. A group in Se
 
 The signal is a message that contains an arbitrary string representing a preference, vote, or opinion. This message includes proofs that demonstrate the user is a valid member of the group and that the information sent (message and proofs) was created by an identity.
 
-## Vote Application
-
-Our main idea to port the protocol was to adapt it to create a voting dapp. Currently it only features one identity one vote, but in the future we'll we need to support other voting schemes such as one token one vote. The voting smart contract can be found in the `validators`folder. 
 
 ## Security guarantees of the protocol
 
@@ -71,7 +72,7 @@ aiken check -m foo
 
 [x] Alpha version release version
 
-[] Group reusability.
+[x] Group reusability.
 
 []  Token based group managing.
 

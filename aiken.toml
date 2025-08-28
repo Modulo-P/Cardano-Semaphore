@@ -1,7 +1,7 @@
 name = "modulo-p/cardano-semaphore"
 version = "0.0.0"
-compiler = "v1.1.2"
-plutus = "v2"
+compiler = "v1.1.19"
+plutus = "v3"
 license = "Apache-2.0"
 description = "Aiken contracts for project 'modulo-p/cardano-semaphore'"
 
@@ -22,5 +22,5 @@ source = "github"
 
 [[dependencies]]
 name = "aiken-lang/merkle-patricia-forestry"
-version = "v2.0.0"
+version = "v2.1.0"
 source = "github"
