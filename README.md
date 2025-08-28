@@ -4,15 +4,20 @@
 
 # Cardano-Semaphore
 
-## Intro
+A Zero-Knowledge implementation of the Semaphore protocol on Cardano, built with Aiken smart contracts.
 
-This repository contains the Aiken implementation of the Semaphore protocol, originally developed for Ethereum by the PSE.DEV group. Semaphore is a Zero-Knowledge based protocol that allows users to privately proof their membership to a group and send messages like preferences or votes anonymously. Essentially, the protocol allows you to accomplish three things:
+## Overview
 
-* Create and register an identity within a group.
-* Prove that your identity is a member of the group without revealing exactly who.
-* Anonymously broadcast an arbitrary string that can represent a preference, vote or opinion.
+This repository contains an Aiken-based implementation of the Semaphore protocol, originally developed for Ethereum by PSE.DEV. Semaphore is a Zero-Knowledge protocol that enables private group membership proofs and anonymous messaging.
 
- The idea of the protocol is to be a base protocol which can extended to address different privacy oriented applications.
+### Core Features
+
+- **Private Identity Creation**: Generate secret values locally for cryptographic identity
+- **Anonymous Group Membership**: Prove group participation without revealing identity  
+- **Anonymous Signaling**: Broadcast messages, votes, or preferences anonymously
+- **Double-Signaling Prevention**: Cryptographic protection against duplicate messages
+
+This implementation serves as a foundational protocol for privacy-oriented applications on Cardano.
 
 ## Key protocol concepts
 
