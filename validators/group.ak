@@ -3,16 +3,8 @@ use aiken/collection/list
 use cardano/address.{Script}
 use cardano/assets.{PolicyId, policies, without_lovelace} as assets
 use cardano/transaction.{OutputReference, Transaction, Input, find_input}
+use group_types.{ GroupRedeemer, Create, Update, GroupDatum }
 
-pub type GroupDatum {
-    group_merke_root: Int,
-    admin_pkh: ByteArray,
-}
-
-pub type GroupRedeemer {
-    Create
-    Update
-}
 
 validator group(oref: OutputReference) {
     mint (rdm: GroupRedeemer, policy_id: PolicyId, self: Transaction) -> Bool {
