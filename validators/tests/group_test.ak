@@ -1,7 +1,8 @@
 use cardano/address.{Address, Script, from_verification_key}
 use cardano/assets.{Value, from_asset, from_lovelace, merge}
 use cardano/transaction.{Input, InlineDatum, NoDatum, Output, OutputReference, Transaction}
-use group.{GroupDatum, GroupRedeemer, Create, Update}
+use group_types.{GroupDatum, GroupRedeemer, Create, Update}
+use group
 
 // Script Parameter
 const initial_oref: OutputReference =

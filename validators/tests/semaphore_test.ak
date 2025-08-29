@@ -9,8 +9,9 @@ use cardano/transaction.{
 //use aiken/crypto/bls12_381/scalar
 //use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
 use ak_381/groth16.{Proof, SnarkVerificationKey, groth_verify} as groth16
-use group.{GroupDatum}
-use semaphore.{SemaphoreRedeemer, SemaphoreDatum, Create, Signal, null_hash}
+use group_types.{GroupDatum}
+use semaphore_types.{SemaphoreRedeemer, SemaphoreDatum, Create, Signal}
+use semaphore.{ null_hash }
 
 
 const initial_oref: OutputReference =

@@ -10,8 +10,9 @@ use cardano/assets.{PolicyId} as assets
 use cardano/transaction.{
   InlineDatum, Input, OutputReference, Transaction, find_input,
 }
-use group.{GroupDatum}
+use group_types.{GroupDatum}
 use utilities.{is_policy_on_value}
+use semaphore_types.{ SemaphoreDatum, SemaphoreRedeemer, Create, Signal }
 
 pub const null_hash =
   #"0000000000000000000000000000000000000000000000000000000000000000"
