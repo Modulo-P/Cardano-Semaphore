@@ -16,17 +16,7 @@ use utilities.{is_policy_on_value}
 pub const null_hash =
   #"0000000000000000000000000000000000000000000000000000000000000000"
 
-pub type SemaphoreRedeemer {
-  Create
-  Signal(groth16.Proof, mpf.Proof, Int, Int, ByteArray)
-}
 
-pub type SemaphoreDatum {
-  group_token_policy: PolicyId,
-  group_merke_root: Int,
-  nullifier_mpf_root: ByteArray,
-  vkey_ref_input: OutputReference,
-}
 
 validator semaphore(oref: OutputReference) {
   mint(rdm: SemaphoreRedeemer, policy_id: PolicyId, self: Transaction) {
