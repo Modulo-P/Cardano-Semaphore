@@ -15,7 +15,6 @@ test insert_nullifier() fail {
     let new_mpf_nullifier: MerklePatriciaForestry =
           mpf.insert(nullifier_mpf, nullifier_key, nullifier_value, [])
     new_mpf_nullifier == mpf.from_root(null_hash)
-
 }
 
           
