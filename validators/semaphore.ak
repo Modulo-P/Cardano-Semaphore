@@ -1,4 +1,4 @@
-//use aiken/builtin.{bytearray_to_integer}
+use aiken/builtin.{bytearray_to_integer}
 use aiken/collection/dict as dict
 use aiken/collection/list
 use aiken/crypto as crypto
