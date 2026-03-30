@@ -156,10 +156,11 @@ validator semaphore(oref: OutputReference) {
           mpf.from_root(out_datum.nullifier_mpf_root) == new_mpf_nullifier
 
         // Condition 5. Is message tampered?
-        // Warning: This imply changing the circuit
-        let message_digest = crypto.blake2b_256(signal_message)
-        expect Some(message_digest_scalar) = scalar.from_bytearray_big_endian(message_digest)
-        let message_digest_int = scalar.to_int(message_digest_scalar)
+        // blake2b_256 produces a 256-bit value which may exceed the BLS12-381 scalar field prime r.
+        // Using scalar.from_bytearray_big_endian would return None for ~55% of all messages.
+        // Fix: reduce mod field_prime (same reduction the circom circuit applies implicitly).
+        let message_digest_int =
+          builtin.bytearray_to_integer(True, crypto.blake2b_256(signal_message)) % scalar.field_prime
         let is_signal_message_tampered: Bool =
           message_digest_int == signal_hash
         and {
