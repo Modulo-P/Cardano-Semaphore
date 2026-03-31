@@ -1,4 +1,4 @@
-use aiken/builtin.{bytearray_to_integer}
+use aiken/builtin
 use aiken/collection/dict as dict
 use aiken/collection/list
 use aiken/crypto as crypto
@@ -89,7 +89,7 @@ validator semaphore(oref: OutputReference) {
   ) {
     when rdm is {
       Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message) -> {
-        let Transaction { inputs, outputs, .. } = self
+        let Transaction { inputs, reference_inputs, outputs, .. } = self
         expect Some(dat) = datum
 
         // Find script input
@@ -115,7 +115,7 @@ validator semaphore(oref: OutputReference) {
 
         // Condition 2: Is Snark Verification Keys reference input correct?
         expect Some(snark_vkey_ref_input) =
-          find_input(inputs, dat.vkey_ref_input)
+          find_input(reference_inputs, dat.vkey_ref_input)
         expect InlineDatum(snark_vkey_input) = snark_vkey_ref_input.output.datum
         expect snark_vkey: SnarkVerificationKey = snark_vkey_input
 
