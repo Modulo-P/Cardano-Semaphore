@@ -1,5 +1,5 @@
 name = "modulo-p/cardano-semaphore"
-version = "1.0.0"
+version = "0.9.5"
 compiler = "v1.1.19"
 plutus = "v3"
 license = "GPL-3.0"
