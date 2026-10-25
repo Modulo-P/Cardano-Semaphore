@@ -7,7 +7,7 @@ use cardano/transaction.{
   DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
 }
 //use aiken/crypto/bls12_381/scalar
-//use aiken/merkle_patricia_forestry.{MerklePatriciaForestry} as mpf
+use aiken/merkle_patricia_forestry.{Leaf} as mpf
 use ak_381/groth16.{Proof, SnarkVerificationKey, groth_verify} as groth16
 use group_types.{GroupDatum}
 use semaphore_types.{SemaphoreRedeemer, SemaphoreDatum, Create, Signal}
@@ -994,6 +994,95 @@ test spend_signal_semaphore_1() {
     )
 }
 
+
+// Happy-path spend with a non-empty MPF trie (S-2)
+// The trie already contains a dummy nullifier; a real non-membership proof
+// is required to insert the real nullifier alongside it.
+//
+// Proof data generated off-chain via @aiken-lang/merkle-patricia-forestry:
+//   dummy nullifier = 12345678901234567890123456789012345678901234567890123456789012345
+//   starting root   = e547413c824d1ce989a90913c79f5040f3cbe49b57e9472aac4e2c1e1c645f8d
+//   resulting root  = 30c9a81ff029dbb494edab50134962cc07516ade3317a17c7ef56ea7dae95d5a
+test spend_signal_semaphore_nonempty_trie() {
+    let tx: Transaction = transaction.placeholder
+
+    let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
+    let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
+    let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
+
+    let semaphore_utxo_ref = OutputReference {
+        transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
+        output_index: 0,
+    }
+
+    // Trie already contains a dummy nullifier — non-empty starting state
+    let initial_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"e547413c824d1ce989a90913c79f5040f3cbe49b57e9472aac4e2c1e1c645f8d",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000)
+    let semaphore_input_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(initial_semaphore_datum),
+        reference_script: None,
+    }
+    let semaphore_input = Input {
+        output_reference: semaphore_utxo_ref,
+        output: semaphore_input_output,
+    }
+
+    // Output datum with the root after inserting the real nullifier into the non-empty trie
+    let output_semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: group_merkle_root,
+        nullifier_mpf_root: #"30c9a81ff029dbb494edab50134962cc07516ade3317a17c7ef56ea7dae95d5a",
+        vkey_ref_input: vkey_input.output_reference,
+    }
+
+    let semaphore_output = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: semaphore_value,
+        datum: InlineDatum(output_semaphore_datum),
+        reference_script: None,
+    }
+
+    // Non-membership proof for inserting real nullifier into a trie containing dummy nullifier.
+    // The single Leaf step provides the existing leaf so the validator can recompute the root.
+    let mpf_proof = [
+        Leaf {
+            skip: 0,
+            key: #"6e8a92bf050156c4fd91d2cf88d9c0ec20b9462fbf59f4aae20617d28d9ce59a",
+            value: #"1236b61aae2ad2a67ca85051c3a4ec564572cf8ee56afb92f7bc121adf7c1619",
+        },
+    ]
+    let signal_message = #"9f9f0201ffff"
+    let signal_redeemer = Signal(zk_proof, mpf_proof, nullifier, signal_hash, signal_message)
+
+    let spend_tx: Transaction = Transaction {
+        ..tx,
+        inputs: [semaphore_input],
+        reference_inputs: [vkey_input],
+        outputs: [semaphore_output],
+    }
+
+    semaphore.semaphore.spend(
+        initial_oref,
+        Some(initial_semaphore_datum),
+        signal_redeemer,
+        semaphore_utxo_ref,
+        spend_tx
+    )
+}
 
 // Spending logic test - tests the Signal redeemer functionality
 test spend_value_not_sent_back() fail {
