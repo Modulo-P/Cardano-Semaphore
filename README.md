@@ -131,4 +131,6 @@ The [modp-semaphore-bls12381](https://github.com/Modulo-P/modp-semaphore-bls1238
 
 ## License
 
-Apache-2.0
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+
+You are free to use, study, modify, and distribute this software, provided that any derivative work is also distributed under the same license.
