@@ -105,6 +105,48 @@ test mint_wrong_minted_value() fail {
   group.group.mint(initial_oref, rdm, policy_id, final_tx)
 }
 
+// Two tokens with distinct asset names - must fail
+test mint_two_tokens_different_names() fail {
+  let tx: Transaction = transaction.placeholder
+
+  let initial_output =
+    Output {
+      address: from_verification_key(#"1234"),
+      value: from_lovelace(2000000),
+      datum: NoDatum,
+      reference_script: None,
+    }
+  let initial_utxo: Input =
+    Input { output_reference: initial_oref, output: initial_output }
+
+  // Two distinct asset names, each quantity 1 — dict.to_pairs() yields two elements
+  let group_token: Value =
+    merge(from_asset(policy_id, #"ab", 1), from_asset(policy_id, #"cd", 1))
+
+  let group_datum: GroupDatum =
+    GroupDatum { group_merke_root: 0, admin_pkh: #"0001" }
+  let script_address: Address =
+    Address { payment_credential: Script(policy_id), stake_credential: None }
+  let output_to_own_script: Output =
+    Output {
+      address: script_address,
+      value: group_token,
+      datum: InlineDatum(group_datum),
+      reference_script: None,
+    }
+
+  let final_tx: Transaction =
+    Transaction {
+      ..tx,
+      inputs: [initial_utxo],
+      outputs: [output_to_own_script],
+      mint: group_token,
+    }
+
+  let rdm: GroupRedeemer = Create
+  group.group.mint(initial_oref, rdm, policy_id, final_tx)
+}
+
 // Sent to incorrect script address - Must fail
 test mint_sent_to_wrong_address() fail {
   let tx: Transaction = transaction.placeholder
@@ -149,6 +191,53 @@ test mint_sent_to_wrong_address() fail {
   group.group.mint(initial_oref, rdm, policy_id, final_tx)
 }
 
+
+// Extra foreign token in script output - must fail
+test mint_extra_token_in_output() fail {
+  let tx: Transaction = transaction.placeholder
+
+  let initial_output =
+    Output {
+      address: from_verification_key(#"1234"),
+      value: from_lovelace(2000000),
+      datum: NoDatum,
+      reference_script: None,
+    }
+  let initial_utxo: Input =
+    Input { output_reference: initial_oref, output: initial_output }
+
+  // Only the group NFT is minted — Condition 1 passes
+  let group_token: Value = from_asset(policy_id, #"ab", 1)
+
+  // A foreign token under a different policy carried in the output
+  let foreign_policy: ByteArray = #"deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+  let foreign_token: Value = from_asset(foreign_policy, #"ff", 1)
+
+  let group_datum: GroupDatum =
+    GroupDatum { group_merke_root: 0, admin_pkh: #"0001" }
+  let script_address: Address =
+    Address { payment_credential: Script(policy_id), stake_credential: None }
+  // Output carries both tokens — policies(without_lovelace(value)) == [group_policy, foreign_policy]
+  // != [policy_id] → Condition 2 fails
+  let output_to_own_script: Output =
+    Output {
+      address: script_address,
+      value: merge(group_token, foreign_token),
+      datum: InlineDatum(group_datum),
+      reference_script: None,
+    }
+
+  let final_tx: Transaction =
+    Transaction {
+      ..tx,
+      inputs: [initial_utxo],
+      outputs: [output_to_own_script],
+      mint: group_token,
+    }
+
+  let rdm: GroupRedeemer = Create
+  group.group.mint(initial_oref, rdm, policy_id, final_tx)
+}
 
 // Spending Tests
 
