@@ -120,6 +120,30 @@ The [modp-semaphore-bls12381](https://github.com/Modulo-P/modp-semaphore-bls1238
 | `packages/proof` | Groth16 verification key and proof artifacts; conversion utilities for the on-chain format |
 | `packages/typescript` | TypeScript SDK — identity generation, incremental Merkle tree management, proof construction |
 
+## Trusted Setup Ceremony
+
+The Groth16 circuit requires a Phase 2 trusted setup specific to the `semaphore.circom` circuit. The ceremony was coordinated by **jmagan-24716625** and completed with **20 independent participants**, followed by a public random beacon contribution.
+
+The final zkey is at `keys/semaphore_final.zkey`. The full verification transcript is at `keys/semaphore_jmagan-24716625_final_verification_transcript.txt`.
+
+**Circuit hash**
+```
+fc05fe32 90faee66 6c48733a 1fb35d55
+61d6bb9a 2e2de081 a27accbc 14d69722
+e05bdbe4 6055d700 1472e4eb e1877951
+b3719fb5 47a419da b41c5b66 99051aa4
+```
+
+**Random beacon** (contribution #21)
+```
+87f2a1f9324c481498566154212b73153d020bcf06deba3f934a2b95bc9c298f
+```
+Beacon iterations exponent: 10
+
+**Verification result:** `ZKey Ok!`
+
+The setup is secure as long as at least one of the 20 participants discarded their contribution randomness — the standard security assumption for Groth16 MPC ceremonies.
+
 ## Roadmap
 
 - [x] Alpha release
@@ -127,7 +151,7 @@ The [modp-semaphore-bls12381](https://github.com/Modulo-P/modp-semaphore-bls1238
 - [ ] Token-based group management
 - [ ] Relayer claiming mechanisms
 - [ ] 1-token-1-vote feature
-- [ ] Trusted setup ceremony documentation
+- [x] Trusted setup ceremony (20 participants, beacon applied)
 
 ## License
 
