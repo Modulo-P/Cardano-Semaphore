@@ -1,0 +1,3 @@
+[submodule "off-chain"]
+	path = off-chain
+	url = https://github.com/Modulo-P/modp-semaphore-bls12381.git
