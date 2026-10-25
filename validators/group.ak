@@ -2,7 +2,7 @@ use aiken/collection/dict as dict
 use aiken/collection/list
 use cardano/address.{Script}
 use cardano/assets.{PolicyId, policies, without_lovelace} as assets
-use cardano/transaction.{OutputReference, Transaction, Input, find_input}
+use cardano/transaction.{OutputReference, Transaction, Input, find_input, InlineDatum}
 use group_types.{ GroupRedeemer, Create, Update, GroupDatum }
 
 
@@ -31,6 +31,12 @@ validator group(oref: OutputReference) {
                 expect [output_to_script] = list.filter(outputs, fn (o) { o.address.payment_credential == own_script_credential })
                 let out_value: List<PolicyId> = without_lovelace(output_to_script.value) |> policies()
                 let is_nft_sent_to_script: Bool = out_value == [policy_id]
+
+                // Condition 3: Is output datum a valid inline GroupDatum?
+                // Enforced here even though semaphore.ak would catch a bad datum later,
+                // because a Group NFT minted with no/malformed datum locks the UTxO forever.
+                expect InlineDatum(raw_datum) = output_to_script.datum
+                expect _: GroupDatum = raw_datum
 
                 and {
                     is_one_token_minted,
