@@ -2,7 +2,7 @@ name = "modulo-p/cardano-semaphore"
 version = "0.0.0"
 compiler = "v1.1.19"
 plutus = "v3"
-license = "Apache-2.0"
+license = "GPL-3.0"
 description = "Aiken contracts for project 'modulo-p/cardano-semaphore'"
 
 [repository]
