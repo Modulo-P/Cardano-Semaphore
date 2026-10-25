@@ -1,52 +1,92 @@
-
-
-
-
 # Cardano-Semaphore
 
-A Zero-Knowledge implementation of the Semaphore protocol on Cardano, built with Aiken smart contracts.
+A Zero-Knowledge implementation of the [Semaphore protocol](https://semaphore.pse.dev/) on Cardano, built with [Aiken](https://aiken-lang.org/) smart contracts and Groth16 proofs over BLS12-381.
 
 ## Overview
 
-This repository contains an Aiken-based implementation of the Semaphore protocol, originally developed for Ethereum by PSE.DEV. Semaphore is a Zero-Knowledge protocol that enables private group membership proofs and anonymous messaging.
+Semaphore is a ZK protocol originally developed for Ethereum by PSE.DEV. It enables anonymous group membership proofs and one-time signaling: a user can prove they belong to a group and broadcast a message without revealing their identity, while the protocol prevents the same identity from signaling twice.
 
-### Core Features
+This repository contains the **on-chain validators** (Aiken/Plutus). The off-chain counterpart — Circom circuits, Groth16 proof generation, and a TypeScript SDK — lives in [modp-semaphore-bls12381](https://github.com/Modulo-P/modp-semaphore-bls12381).
 
-- **Anonymous Group Membership**: Prove group participation without revealing identity  
-- **Anonymous Signaling**: Broadcast messages, votes, or preferences anonymously
-- **Double-Signaling Prevention**: Cryptographic protection against duplicate messages
+## Protocol Concepts
 
-This implementation serves as a foundational protocol for privacy-oriented applications on Cardano.
+### Identities
 
-## Key protocol concepts
+A user generates a secret identity locally. The identity produces a public commitment that is registered in a group. Secret values allow the user to construct ZK proofs tied to their identity without exposing it.
 
-To understand the protocol we have to take in account three important concepts.
-### Identities 
+### Groups
 
-A user can represent themselves by creating an identity. This identity contains unique secret values that are generated locally by the user. These values allow them to prove ownership of the identity and to construct proofs and messages tied to this identity. These secret values are important because they prevent impersonating the user by appending unrelated corrupt messages or proofs.
+A group is a Merkle tree of identity commitments. An administrator manages the group root stored on-chain in the `GroupDatum`. Members prove membership by providing a ZK proof that their commitment is a leaf of that tree.
 
-### Groups 
+### Signals
 
-A group is a set of members, where each member has their identity. A group in Semaphore is represented by a Merkle tree that stores the public identity commitment of each member (the leaves). Later a user can construct a proof showing that their identity is part of the group but without specifying who. Currently these groups are managed by administrators but in the future we'll allow users to join and leave groups independently. 
+A signal is an anonymous message (vote, preference, opinion) accompanied by a ZK proof of group membership. The protocol prevents double-signaling: each identity can signal at most once per group by recording a nullifier in an on-chain Merkle Patricia Forestry (MPF) trie.
 
-### Signals (messages) 
+## Security Guarantees
 
-The signal is a message that contains an arbitrary string representing a preference, vote, or opinion. This message includes proofs that demonstrate the user is a valid member of the group and that the information sent (message and proofs) was created by an identity.
+1. **Proof of ownership** — signals can only be produced by the holder of the identity secret.
+2. **Proof of membership** — signals are rejected unless the identity is a current member of the group.
+3. **Double-signal prevention** — the nullifier trie detects and rejects repeated signals from the same identity.
 
+## Architecture
 
-## Security guarantees of the protocol
+### `validators/group.ak` — Group validator
 
-Considering the above the protocol has cryptographic mechanisms that allows to anonymously check:
+Manages the Group NFT lifecycle.
 
-1. **Proof of ownership:** Verify that the proofs and messages are being created by the owner of an
-   identity. 
+- **Mint (`Create`)** — bootstraps a new group: consumes a one-time UTxO, mints exactly one NFT, sends it to the script address with a valid inline `GroupDatum`, and enforces that the output carries no other tokens.
+- **Spend (`Update`)** — allows the group administrator to update `GroupDatum` (e.g. rotate the Merkle root). Requires an admin signature and full value conservation.
 
-2. **Proof of membership:** Verify that the proof and messages are being created by a valid member
-   of the group. 
+### `validators/semaphore.ak` — Semaphore validator
 
-3. **Double signaling:** Detect wether a message has been sent previously by an user, this is
-   important since avoids to broadcast a signal twice in a way that can be
-   malicious to the Dapp.
+Manages the Semaphore NFT and signal processing.
+
+- **Mint (`Create`)** — bootstraps a semaphore instance: consumes a one-time UTxO, mints exactly one NFT, reads the group Merkle root from a Group reference input, and records it in the output `SemaphoreDatum` alongside an empty nullifier trie root.
+- **Spend (`Signal`)** — processes an anonymous signal: verifies the Groth16 ZK proof, inserts the nullifier into the MPF trie, checks the updated trie root in the output datum, and validates the signal message integrity.
+
+### Data types
+
+| Type | Location | Purpose |
+|---|---|---|
+| `GroupDatum` | `lib/group_types.ak` | On-chain group state: Merkle root + admin key |
+| `SemaphoreDatum` | `lib/semaphore_types.ak` | On-chain semaphore state: group policy, Merkle root, nullifier trie root, VKey reference |
+| `GroupRedeemer` | `lib/group_types.ak` | `Create` \| `Update` |
+| `SemaphoreRedeemer` | `lib/semaphore_types.ak` | `Create` \| `Signal(proof, mpf_proof, nullifier, signal_hash, message)` |
+
+## System Architecture
+
+The full system is split across two repositories:
+
+```
+modp-semaphore-bls12381 (off-chain)        Cardano-Semaphore (on-chain)
+─────────────────────────────────          ────────────────────────────
+packages/circuits                          validators/group.ak
+  semaphore.circom                           Group NFT mint + update
+  tree.circom   ──── Groth16 proof ────▶   validators/semaphore.ak
+                                             Semaphore NFT mint
+packages/proof                               Signal spend + nullifier
+  verification_key.json ──────────▶           (reads vkey as ref input)
+  conversion utils
+
+packages/typescript
+  identity/   ──── identity commitment ──▶  GroupDatum.group_merke_root
+  group/      ──── Merkle proof ──────────▶  SemaphoreRedeemer.Signal
+```
+
+**Off-chain flow:**
+1. User generates an identity (`packages/typescript/identity`)
+2. Admin inserts the commitment into an incremental Poseidon Merkle tree (`packages/typescript/group`)
+3. Admin updates `GroupDatum` on-chain with the new Merkle root (Group `Update` spend)
+4. User generates a Groth16 ZK proof with the Circom circuit
+5. User submits a `Signal` transaction to the Semaphore validator, including the proof and MPF nullifier proof
+
+## Dependencies
+
+| Package | Version | Purpose |
+|---|---|---|
+| `aiken-lang/stdlib` | `2.1.0` | Standard library |
+| `modulo-p/ak-381` | `v0.1.1` | Groth16 verifier over BLS12-381 |
+| `aiken-lang/merkle-patricia-forestry` | `v2.1.0` | On-chain nullifier trie |
 
 ## Building
 
@@ -56,37 +96,39 @@ aiken build
 
 ## Testing
 
-To run all tests, simply do:
+Run all tests:
 
 ```sh
 aiken check
 ```
 
-To run only tests matching the string `foo`, do:
+Run tests matching a pattern:
 
 ```sh
-aiken check -m foo
+aiken check -m group_test
 ```
 
-## Future steps
+The test suite covers 40 unit tests across `group_test`, `semaphore_test`, `mpf_proofs`, and `test_utilities`.
 
-[x] Alpha version release version
+## Off-chain SDK
 
-[x] Group reusability.
+The [modp-semaphore-bls12381](https://github.com/Modulo-P/modp-semaphore-bls12381) repository provides:
 
-[]  Token based group managing.
+| Package | Description |
+|---|---|
+| `packages/circuits` | Circom circuits (`semaphore.circom`, `tree.circom`) using Poseidon hash over BLS12-381 |
+| `packages/proof` | Groth16 verification key and proof artifacts; conversion utilities for the on-chain format |
+| `packages/typescript` | TypeScript SDK — identity generation, incremental Merkle tree management, proof construction |
 
-[] Relayer claiming mechanisms
+## Roadmap
 
-[] 1 token 1 vote feature.
+- [x] Alpha release
+- [x] Group reusability
+- [ ] Token-based group management
+- [ ] Relayer claiming mechanisms
+- [ ] 1-token-1-vote feature
+- [ ] Trusted setup ceremony documentation
 
-## Trusted Setup Ceremony
+## License
 
-Todo
-
-## Other resources
-
-Todo
-
-
-
+Apache-2.0
