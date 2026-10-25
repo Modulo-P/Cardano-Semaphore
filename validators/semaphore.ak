@@ -43,7 +43,7 @@ validator semaphore(oref: OutputReference) {
             fn(o) { o.address.payment_credential == own_script_credential },
           )
         let is_nft_sent_to_script: Bool =
-          is_policy_on_value(output_to_script.value, policy_id)
+          assets.policies(assets.without_lovelace(output_to_script.value)) == [policy_id]
 
         // Condition 3: Is there a Semaphore Datum atttached?
         expect InlineDatum(out_datum) = output_to_script.datum
