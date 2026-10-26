@@ -477,3 +477,92 @@ test spend_value_not_conserved() fail {
 }
 
 
+
+// G-1: mint rejects when the input UTxO does not match the oref parameter.
+// find_input returns None, the expect crashes.
+test mint_wrong_oref() fail {
+  let tx: Transaction = transaction.placeholder
+
+  let wrong_oref = OutputReference {
+      transaction_id: #"dead",
+      output_index: 0,
+  }
+  let wrong_utxo: Input =
+    Input {
+      output_reference: wrong_oref,
+      output: Output {
+        address: from_verification_key(#"1234"),
+        value: from_lovelace(2000000),
+        datum: NoDatum,
+        reference_script: None,
+      },
+    }
+
+  let group_token: Value = from_asset(policy_id, #"ab", 1)
+  let group_datum: GroupDatum =
+    GroupDatum { group_merke_root: 0, admin_pkh: #"0001" }
+  let script_address: Address =
+    Address { payment_credential: Script(policy_id), stake_credential: None }
+  let output_to_own_script: Output =
+    Output {
+      address: script_address,
+      value: group_token,
+      datum: InlineDatum(group_datum),
+      reference_script: None,
+    }
+
+  let final_tx: Transaction =
+    Transaction {
+      ..tx,
+      inputs: [wrong_utxo],
+      outputs: [output_to_own_script],
+      mint: group_token,
+    }
+
+  group.group.mint(initial_oref, Create, policy_id, final_tx)
+}
+
+// G-2: spending with the Create redeemer hits `_ -> False` and is rejected.
+test spend_create_redeemer_rejected() fail {
+  let tx: Transaction = transaction.placeholder
+
+  let script_address: Address =
+    Address { payment_credential: Script(policy_id), stake_credential: None }
+  let group_token: Value = from_asset(policy_id, #"ab", 1)
+  let pkh: ByteArray = #"0001"
+
+  let previous_datum: GroupDatum =
+    GroupDatum { group_merke_root: 0, admin_pkh: pkh }
+  let prev_oref: OutputReference =
+    OutputReference { transaction_id: #"12345678", output_index: 0 }
+  let previous_utxo: Input =
+    Input {
+      output_reference: prev_oref,
+      output: Output {
+        address: script_address,
+        value: merge(group_token, from_lovelace(2000000)),
+        datum: InlineDatum(previous_datum),
+        reference_script: None,
+      },
+    }
+
+  let new_datum: GroupDatum =
+    GroupDatum { group_merke_root: 1, admin_pkh: pkh }
+  let new_output: Output =
+    Output {
+      address: script_address,
+      value: merge(group_token, from_lovelace(2000000)),
+      datum: InlineDatum(new_datum),
+      reference_script: None,
+    }
+
+  let final_tx: Transaction =
+    Transaction {
+      ..tx,
+      inputs: [previous_utxo],
+      outputs: [new_output],
+      extra_signatories: [pkh],
+    }
+
+  group.group.spend(initial_oref, Some(previous_datum), Create, prev_oref, final_tx)
+}
