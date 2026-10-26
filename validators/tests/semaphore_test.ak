@@ -874,6 +874,108 @@ test mint_mpf_root_wrong_setup() fail {
     semaphore.semaphore.mint(initial_oref, rdm, semaphore_policy_id, final_tx)
 }
 
+// S-3: validator rejects when the input UTxO does not match the oref parameter.
+// find_input(inputs, initial_oref) returns None — the expect crashes.
+test mint_wrong_oref() fail {
+    let tx: Transaction = transaction.placeholder
+    let actual_admin_pkh: ByteArray = bytearray.from_string(@"admin_public_key_hash")
+    let group_token: Value = from_asset(group_policy_id, bytearray.from_string(@"group_token"), 1)
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+
+    let wrong_oref = OutputReference {
+        transaction_id: #"dead",
+        output_index: 0,
+    }
+    let wrong_initial_utxo: Input =
+        Input {
+            output_reference: wrong_oref,
+            output: Output {
+                address: from_verification_key(#"1234"),
+                value: from_lovelace(2000000),
+                datum: NoDatum,
+                reference_script: None,
+            },
+        }
+
+    let group_datum = GroupDatum {
+        group_merke_root: 12345678901234567890,
+        admin_pkh: actual_admin_pkh,
+    }
+    let group_value = add(group_token, #"", #"", 1000000)
+    let group_reference_input = Input {
+        output_reference: OutputReference {
+            transaction_id: bytearray.from_string(@"group_tx_id"),
+            output_index: 0,
+        },
+        output: Output {
+            address: Address {
+                payment_credential: Script(group_policy_id),
+                stake_credential: None,
+            },
+            value: group_value,
+            datum: InlineDatum(group_datum),
+            reference_script: None,
+        },
+    }
+
+    let semaphore_datum = SemaphoreDatum {
+        group_token_policy: group_policy_id,
+        group_merke_root: 12345678901234567890,
+        nullifier_mpf_root: null_hash,
+        vkey_ref_input: vkey_input.output_reference,
+    }
+    let output_to_own_script = Output {
+        address: Address {
+            payment_credential: Script(semaphore_policy_id),
+            stake_credential: None,
+        },
+        value: add(semaphore_token, #"", #"", 1000000),
+        datum: InlineDatum(semaphore_datum),
+        reference_script: None,
+    }
+
+    let final_tx: Transaction =
+        Transaction {
+            ..tx,
+            inputs: [wrong_initial_utxo],
+            reference_inputs: [group_reference_input],
+            outputs: [output_to_own_script],
+            mint: semaphore_token,
+        }
+
+    semaphore.semaphore.mint(initial_oref, Create, semaphore_policy_id, final_tx)
+}
+
+// S-4: Signal redeemer on the mint endpoint hits `_ -> False` and is rejected.
+// No setup beyond a minimal valid transaction is needed — the branch is unconditional.
+test mint_signal_redeemer_rejected() fail {
+    let tx: Transaction = transaction.placeholder
+    let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
+
+    let initial_utxo: Input =
+        Input {
+            output_reference: initial_oref,
+            output: Output {
+                address: from_verification_key(#"1234"),
+                value: from_lovelace(2000000),
+                datum: NoDatum,
+                reference_script: None,
+            },
+        }
+
+    let signal_redeemer: SemaphoreRedeemer =
+        Signal(zk_proof, [], 0, 0, #"")
+
+    let final_tx: Transaction =
+        Transaction {
+            ..tx,
+            inputs: [initial_utxo],
+            mint: semaphore_token,
+        }
+
+    semaphore.semaphore.mint(initial_oref, signal_redeemer, semaphore_policy_id, final_tx)
+}
+
 
 // Zero-Knowledge Constants
 
@@ -1329,12 +1431,14 @@ test spend_datum_not_preserved_2() fail {
 }
 
 test spend_vkey_field_with_incorrect_value() fail {
+    // Distinct oref for the wrong-typed vkey input — no coupling to the global vkey_input constant
+    let wrong_vk_oref = OutputReference {
+        transaction_id: #"baad",
+        output_index: 0,
+    }
     let wrong_vk_input: Input =
     Input {
-        output_reference: OutputReference {
-        transaction_id: #"01bc",
-        output_index: 0,
-        },
+        output_reference: wrong_vk_oref,
         output: Output {
         address: Address {
             payment_credential: Script(
@@ -1349,29 +1453,26 @@ test spend_vkey_field_with_incorrect_value() fail {
     }
 
     let tx: Transaction = transaction.placeholder
-    
-    // Test data extracted from the constants defined above
+
     let group_merkle_root = 1300961563791892545922380221316595384368736985570119147438719621842911365487
     let nullifier = 38625149408878199693830158794989919308150121977174408046140837150457929803892
     let signal_hash = 25050711957853089676855563252373407134946460892559238457710929576024828641940
-    //let external_nullifier = 26752615589533105314083070294476356144393894068720636123966246677904
 
-
-    // Create the semaphore UTxO reference that we're spending
     let semaphore_utxo_ref = OutputReference {
         transaction_id: bytearray.from_string(@"semaphore_spend_tx_id"),
         output_index: 0,
     }
-    
-    // Create the initial semaphore datum (input state)
+
+    // Both datums reference the same wrong-typed vkey oref — is_datum_preserved passes,
+    // and the test then fails explicitly at the SnarkVerificationKey type cast.
     let initial_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
-        nullifier_mpf_root: null_hash,  // Initially empty
-        vkey_ref_input: wrong_vk_input.output_reference,
-    }   
+        nullifier_mpf_root: null_hash,
+        vkey_ref_input: wrong_vk_oref,
+    }
     let semaphore_token: Value = from_asset(semaphore_policy_id, bytearray.from_string(@"semaphore_token"), 1)
-    let semaphore_value = add(semaphore_token, #"", #"", 1000000) 
+    let semaphore_value = add(semaphore_token, #"", #"", 1000000)
     let semaphore_input_output = Output {
         address: Address {
             payment_credential: Script(semaphore_policy_id),
@@ -1385,14 +1486,12 @@ test spend_vkey_field_with_incorrect_value() fail {
         output_reference: semaphore_utxo_ref,
         output: semaphore_input_output,
     }
-    
-    
-    // Create the output semaphore datum (updated state with new nullifier)
+
     let output_semaphore_datum = SemaphoreDatum {
         group_token_policy: group_policy_id,
         group_merke_root: group_merkle_root,
         nullifier_mpf_root: #"3c3bf558a8baec0be663d60210accf8d283def05f05491e819bec27706b1e808",
-        vkey_ref_input: vkey_input.output_reference,
+        vkey_ref_input: wrong_vk_oref,
     }
     
     // Create the output semaphore UTxO (returned to script)
